@@ -39,27 +39,31 @@ AZ = re.compile(r"(\b\d{1,2}\s?[A-Z]{1,3}\s?\d{1,4}\s?/\s?\d{2}\b"      # 2 F 84
                 r"|\b\d{2}-[A-Za-z]{2,4}-[A-Za-z]{2}-[A-Za-z]{2}-\d{3,5}-\d{4,7}\b)")  # 06-Jug-RD-SW-8127-000045
 
 
-def text_anfang(p):
+def text_anfang(p, tp=None):
+    if tp and os.path.exists(tp):
+        with open(tp, encoding="utf-8", errors="ignore") as f:
+            return f.read(20000)
     ext = os.path.splitext(p)[1].lower()
     try:
         if ext in (".txt", ".md", ".eml", ".csv", ".rtf", ".html", ".htm"):
             with open(p, "rb") as f:
-                return f.read(20000).decode("utf-8", "ignore").lower()
+                return f.read(20000).decode("utf-8", "ignore")
         if ext == ".docx":
             with zipfile.ZipFile(p) as z:
                 x = z.read("word/document.xml").decode("utf-8", "ignore")
-            return re.sub(r"<[^>]+>", " ", x)[:20000].lower()
+            return re.sub(r"<[^>]+>", " ", x)[:20000]
         if ext == ".pdf" and shutil.which("pdftotext"):
             r = subprocess.run(["pdftotext", "-l", "3", p, "-"], capture_output=True, timeout=60)
-            return r.stdout.decode("utf-8", "ignore")[:20000].lower()
+            return r.stdout.decode("utf-8", "ignore")[:20000]
     except Exception:
         pass
     return ""
 
 
-def bewerten(p):
+def bewerten(p, tp=None):
     name = os.path.basename(p).lower().replace("_", " ").replace("-", " ")
-    txt = text_anfang(p)
+    roh_txt = text_anfang(p, tp)
+    txt = roh_txt.lower()
     ext = os.path.splitext(p)[1].lower()
     punkte, gruende = {}, {}
     for kat, worte in KAT.items():
@@ -70,11 +74,11 @@ def bewerten(p):
                 gruende.setdefault(kat, []).append(w.strip())
     if ext in EXT_KAT:
         k = EXT_KAT[ext]
-        punkte[k] = punkte.get(k, 0) + 6
+        punkte[k] = punkte.get(k, 0) + (2 if (k == "05_Beweise" and len(txt.strip()) > 80) else 6)
         gruende.setdefault(k, []).append("Dateityp " + ext)
     roh = os.path.splitext(os.path.basename(p))[0].replace("_", " ")
     roh = re.sub(r"(?<![A-Za-z0-9])([A-Z]{1,3})[ _](\d{1,4})[ _-](\d{2})(?![0-9])", r"\1 \2/\3", roh)
-    az = AZ.search(roh) or AZ.search(txt)
+    az = AZ.search(roh) or AZ.search(roh_txt)
     return punkte, gruende, (az.group(1).strip() if az else "")
 
 
@@ -110,7 +114,7 @@ def main():
         p = os.path.join(wurzel, z["pfad"])
         if not os.path.exists(p):
             continue
-        punkte, gruende, az = bewerten(p)
+        punkte, gruende, az = bewerten(p, text_pfad(wurzel, z["id"]))
         ziel, konf = entscheide(punkte)
         grund = "; ".join(gruende.get(ziel, [])) if ziel else "keine Hinweise"
         zielpfad = ziel

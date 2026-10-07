@@ -35,13 +35,24 @@ Umbenennen nur auf Anweisung; der alte Name kommt in `beschreibung`.
 ## Arbeitsablauf
 1. Neue Dateien nach `00_Eingang_ungeprueft/` legen.
 2. `python tools/inventar.py` ausfuehren (erfasst, hasht, erkennt exakte Duplikate).
-3. `python tools/sortieren.py` erzeugt einen Zuordnungsvorschlag (`index/zuordnung_vorschlag.csv`), nichts wird verschoben. Nach Pruefung `--anwenden` (nur Konfidenz hoch). Unklare Dateien (niedrig) bleiben im Eingang und werden NIE geraten, sondern dem Nutzer vorgelegt.
+3. `python tools/ocr.py` liest alle Dokumente aus (PDF-Textebene, docx, Mails) und fuehrt bei Scans/Bildern lokale OCR aus.
+   Ergebnis: `index/text/<ID>.txt` mit Seitenmarken. `text_status` im Index: text, ocr, ocr-schwach, leer, fehler.
+   Dokumente mit `ocr-schwach`, `leer` oder `fehler` dem Nutzer zur manuellen Pruefung vorlegen, nie als gelesen behandeln.
+   OCR nur lokal ausfuehren, nie ueber Cloud-Dienste.
+4. `python tools/sortieren.py` erzeugt einen Zuordnungsvorschlag (`index/zuordnung_vorschlag.csv`), nichts wird verschoben. Nach Pruefung `--anwenden` (nur Konfidenz hoch). Unklare Dateien (niedrig) bleiben im Eingang und werden NIE geraten, sondern dem Nutzer vorgelegt.
    Danach pro Datei `typ`, `datum`, `aktenzeichen`, `beschreibung` ergaenzen, dann in den passenden Ordner verschieben
    (Pfad im Index nachziehen) und `status` auf `geprueft` setzen.
-4. Inhaltlich gleiche, aber nicht byte-gleiche Dateien (z. B. Doc und PDF derselben Schrift) NICHT automatisch
+5. Inhaltlich gleiche, aber nicht byte-gleiche Dateien (z. B. Doc und PDF derselben Schrift) NICHT automatisch
    loeschen. Als Kandidat in `status = "dublette-pruefen"` setzen und dem Nutzer melden.
-5. `python tools/pruefen.py` muss ohne FEHLER laufen, bevor etwas weitergegeben wird.
-6. `index/chronologie.md` aus dem Index pflegen: Datum, Ereignis, Dokument-IDs. Nur belegte Fakten.
+6. `python tools/pruefen.py` muss ohne FEHLER laufen, bevor etwas weitergegeben wird.
+7. `index/chronologie.md` aus dem Index pflegen: Datum, Ereignis, Dokument-IDs. Nur belegte Fakten.
 
 ## Status-Werte
 `neu`, `zugeordnet-auto`, `geprueft`, `duplikat`, `dublette-pruefen`, `unleserlich`, `klaeren`
+
+## Inhaltsanalyse
+- Grundlage sind nur die Textdateien in `index/text/`. Jede Aussage nennt Dokument-ID und Seite, z. B. `[D-00012, S. 3]`.
+- OCR-Fehler moeglich: Namen, Daten, Aktenzeichen und Betraege bei Scans mit dem Original vergleichen und als
+  `(OCR, ungeprueft)` kennzeichnen, bis der Nutzer sie bestaetigt.
+- Fakten (steht im Dokument), Bewertung (Meinung) und Luecken (fehlt/unklar) getrennt darstellen.
+- Widersprueche zwischen Dokumenten nennen, nicht aufloesen. Rechtliche Wuerdigung nur durch den Rechtsanwalt.

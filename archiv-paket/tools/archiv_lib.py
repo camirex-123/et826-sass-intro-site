@@ -14,7 +14,7 @@ ORDNER = [
     "index",
 ]
 SPALTEN = ["id", "pfad", "name", "sha256", "bytes", "geaendert", "erfasst_am",
-           "typ", "datum", "aktenzeichen", "beschreibung", "status", "duplikat_von"]
+           "typ", "datum", "aktenzeichen", "beschreibung", "status", "duplikat_von", "text_status", "seiten"]
 IGNORIERT_ORDNER = {"index", "tools", ".git"}
 IGNORIERT_DATEIEN = {"AGENTS.md", "README.md", ".gitignore", "desktop.ini", "Thumbs.db"}
 
@@ -65,3 +65,7 @@ def rel(wurzel, pfad):
 
 def jetzt():
     return datetime.now().strftime("%Y-%m-%d %H:%M")
+
+
+def text_pfad(wurzel, doc_id):
+    return os.path.join(wurzel, "index", "text", doc_id + ".txt")

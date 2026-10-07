@@ -21,6 +21,14 @@ Enthaelt nur Regeln und Werkzeuge, keine Falldaten. Voraussetzung: Python 3.8+ (
 Duplikate werden nur markiert und spaeter nach `99_Duplikate_Quarantaene` verschoben. Erst wenn du sie freigibst,
 wird dadurch Platz frei.
 
+## Texterkennung (OCR), einmalig einrichten
+1. Tesseract installieren (Windows-Build der Universitaet Mannheim). Im Installer unter Sprachen **German** anhaken.
+2. `pip install pymupdf pillow`
+3. `python tools\ocr.py` ausfuehren. Alles laeuft lokal, nichts wird hochgeladen. Die Texte liegen in `index\text\`.
+4. Danach `python tools\sortieren.py`: die Zuordnung nutzt jetzt auch den gelesenen Inhalt.
+Schlechte Scans, Handschrift und Fotos von Papier erkennt OCR nur teilweise. Solche Dokumente werden als
+`ocr-schwach` markiert und muessen von dir geprueft werden.
+
 ## Wichtig
 - Kein Git-Repo ohne Passwortschutz oder in einem oeffentlichen Repo. Die `.gitignore` schliesst die Akten aus.
 - Sichere das Archiv verschluesselt (z. B. BitLocker oder Veracrypt-Container) und gib es den Rechtsanwalt nur ueber einen
