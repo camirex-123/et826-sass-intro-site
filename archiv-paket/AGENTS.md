@@ -35,7 +35,8 @@ Umbenennen nur auf Anweisung; der alte Name kommt in `beschreibung`.
 ## Arbeitsablauf
 1. Neue Dateien nach `00_Eingang_ungeprueft/` legen.
 2. `python tools/inventar.py` ausfuehren (erfasst, hasht, erkennt exakte Duplikate).
-3. Pro Datei `typ`, `datum`, `aktenzeichen`, `beschreibung` ergaenzen, dann in den passenden Ordner verschieben
+3. `python tools/sortieren.py` erzeugt einen Zuordnungsvorschlag (`index/zuordnung_vorschlag.csv`), nichts wird verschoben. Nach Pruefung `--anwenden` (nur Konfidenz hoch). Unklare Dateien (niedrig) bleiben im Eingang und werden NIE geraten, sondern dem Nutzer vorgelegt.
+   Danach pro Datei `typ`, `datum`, `aktenzeichen`, `beschreibung` ergaenzen, dann in den passenden Ordner verschieben
    (Pfad im Index nachziehen) und `status` auf `geprueft` setzen.
 4. Inhaltlich gleiche, aber nicht byte-gleiche Dateien (z. B. Doc und PDF derselben Schrift) NICHT automatisch
    loeschen. Als Kandidat in `status = "dublette-pruefen"` setzen und dem Nutzer melden.
@@ -43,4 +44,4 @@ Umbenennen nur auf Anweisung; der alte Name kommt in `beschreibung`.
 6. `index/chronologie.md` aus dem Index pflegen: Datum, Ereignis, Dokument-IDs. Nur belegte Fakten.
 
 ## Status-Werte
-`neu`, `geprueft`, `duplikat`, `dublette-pruefen`, `unleserlich`, `klaeren`
+`neu`, `zugeordnet-auto`, `geprueft`, `duplikat`, `dublette-pruefen`, `unleserlich`, `klaeren`
