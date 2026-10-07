@@ -127,13 +127,14 @@ def main():
                 b, e = os.path.splitext(z["name"])
                 neu = os.path.join(wurzel, zielpfad, f"{b}__{i}{e}")
                 i += 1
+            alt = z["pfad"]
             shutil.move(p, neu)
             z["pfad"] = rel(wurzel, neu)
             z["name"] = os.path.basename(neu)
             z["status"] = "zugeordnet-auto"
             if az and not z["aktenzeichen"]:
                 z["aktenzeichen"] = az
-            z["beschreibung"] = (z["beschreibung"] + " | " if z["beschreibung"] else "") + f"auto: {grund} ({konf})"
+            z["beschreibung"] = (z["beschreibung"] + " | " if z["beschreibung"] else "") + f"auto: {grund} ({konf}); vorher: {alt}"
             bewegt += 1
         elif konf == "niedrig":
             z["status"] = "klaeren" if z["status"] == "neu" else z["status"]

@@ -29,7 +29,8 @@ def sha256(pfad):
 
 def dateien(wurzel):
     for dirpath, dirnames, files in os.walk(wurzel):
-        dirnames[:] = [d for d in dirnames if d not in IGNORIERT_ORDNER and not d.startswith(".")]
+        if os.path.abspath(dirpath) == os.path.abspath(wurzel):  # nur auf oberster Ebene ausblenden
+            dirnames[:] = [d for d in dirnames if d not in IGNORIERT_ORDNER and not d.startswith(".")]
         for name in files:
             if name in IGNORIERT_DATEIEN or name.startswith("~$"):
                 continue
