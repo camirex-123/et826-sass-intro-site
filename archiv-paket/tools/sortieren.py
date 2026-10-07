@@ -72,7 +72,7 @@ def bewerten(p):
         k = EXT_KAT[ext]
         punkte[k] = punkte.get(k, 0) + 6
         gruende.setdefault(k, []).append("Dateityp " + ext)
-    roh = os.path.splitext(os.path.basename(p))[0]
+    roh = os.path.splitext(os.path.basename(p))[0].replace("_", " ")
     roh = re.sub(r"(?<![A-Za-z0-9])([A-Z]{1,3})[ _](\d{1,4})[ _-](\d{2})(?![0-9])", r"\1 \2/\3", roh)
     az = AZ.search(roh) or AZ.search(txt)
     return punkte, gruende, (az.group(1).strip() if az else "")
