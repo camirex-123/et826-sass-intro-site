@@ -1,0 +1,11 @@
+# Archivinhalt gehoert NICHT ins Git, nur Regeln und Werkzeuge.
+# Wenn das Archiv selbst versioniert werden soll: nur in einem PRIVATEN Repo und diese Zeilen bewusst entfernen.
+00_*/
+01_*/
+02_*/
+03_*/
+04_*/
+05_*/
+06_*/
+99_*/
+index/dokumente.csv
