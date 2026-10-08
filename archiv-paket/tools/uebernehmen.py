@@ -10,6 +10,9 @@
 Aufruf:
   python tools/uebernehmen.py ARCHIV_WURZEL --ziel "KANZLEI_CODEX_CASE_TEMPLATE/01_ORIGINALE"
        [--ausschliessen "KANZLEI_CODEX_CASE_TEMPLATE,index"] [--ohne-typen md,csv,ps1,py,svg] [--anwenden] [--datumspraefix]
+Handzuordnung: Beim Plan entsteht index/zuordnung_manuell_VORLAGE.csv mit allen unklaren Dateien (Spalte 'ordner' leer). In Excel
+ausfuellen (z. B. GERICHT/AG_Schoeneberg, MEDIZIN, SCHULE), als index/zuordnung_manuell.csv speichern (CSV, Trennzeichen Semikolon).
+Beim naechsten Lauf gilt dieser Ordner statt der automatischen Zuordnung.
 Vorher: inventar.py, duplikate.py, ocr.py (damit der Inhalt in die Zuordnung eingeht)."""
 import csv, os, re, shutil, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -58,6 +61,20 @@ rest = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or a
 wurzel = os.path.abspath(rest[0] if rest else os.getcwd())
 zeilen = lese_index(wurzel)
 
+manuell = {}
+mp = os.path.join(wurzel, "index", "zuordnung_manuell.csv")
+if os.path.exists(mp):
+    roh = open(mp, "rb").read()
+    try:
+        txt = roh.decode("utf-8-sig")
+    except UnicodeDecodeError:
+        txt = roh.decode("cp1252")
+    for r in csv.DictReader(txt.splitlines(), delimiter=";"):
+        o = (r.get("ordner") or "").strip().replace("\\", "/").strip("/")
+        if o and r.get("id"):
+            manuell[r["id"].strip()] = o
+    print(f"Handzuordnung: {len(manuell)} Eintraege aus index/zuordnung_manuell.csv")
+
 im_ziel = {z["sha256"] for z in zeilen if z["pfad"].startswith(ziel + "/")}
 plan, belegt = [], set()
 for z in zeilen:
@@ -76,7 +93,9 @@ for z in zeilen:
         continue
     punkte, gruende, az = bewerten(quelle, text_pfad(wurzel, z["id"]))
     kat, konf = entscheide(punkte)
-    if konf == "niedrig" or not kat:
+    if z["id"] in manuell:
+        unter = manuell[z["id"]]
+    elif konf == "niedrig" or not kat:
         unter = "SONSTIGE/_UNGEKLAERT"
     else:
         txt = text_anfang(quelle, text_pfad(wurzel, z["id"])).lower()
@@ -94,6 +113,16 @@ for z in zeilen:
     plan.append({"id": z["id"], "quelle": p, "ziel": zd, "kategorie": unter, "konfidenz": konf or "niedrig",
                  "aktion": "kopieren"})
 
+offen = [r for r in plan if r["kategorie"] == "SONSTIGE/_UNGEKLAERT"]
+if offen:
+    nach_id = {z["id"]: z for z in zeilen}
+    vl = os.path.join(wurzel, "index", "zuordnung_manuell_VORLAGE.csv")
+    with open(vl, "w", newline="", encoding="utf-8-sig") as f:
+        w = csv.writer(f, delimiter=";")
+        w.writerow(["id", "dateiname", "dokumentdatum", "quelle", "ordner"])
+        for r in offen:
+            z = nach_id[r["id"]]
+            w.writerow([r["id"], z["name"], z.get("dokdatum", ""), r["quelle"], ""])
 out = os.path.join(wurzel, "index", "uebernahme_plan.csv")
 os.makedirs(os.path.dirname(out), exist_ok=True)
 with open(out, "w", newline="", encoding="utf-8-sig") as f:
@@ -110,6 +139,8 @@ print(f"Plan: {sum(zaehl.values())} Dateien kopieren, {sum(1 for r in plan if r[
 for k, n in sorted(zaehl.items(), key=lambda kv: -kv[1]):
     print(f"  {n:4}  {k}")
 print("Plan-Datei:", out)
+if offen:
+    print(f"{len(offen)} Dateien sind unklar. Zum Selbstzuordnen: index/zuordnung_manuell_VORLAGE.csv (Anleitung im Kopf von uebernehmen.py).")
 if not anwenden:
     print("Nichts kopiert. Mit --anwenden ausfuehren, wenn der Plan passt.")
     sys.exit(0)
