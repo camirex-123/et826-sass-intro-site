@@ -15,7 +15,7 @@ ORDNER = [
 ]
 SPALTEN = ["id", "pfad", "name", "sha256", "bytes", "geaendert", "erfasst_am",
            "typ", "datum", "aktenzeichen", "beschreibung", "status", "duplikat_von", "text_status", "seiten", "komprimiert",
-           "dokdatum", "dokdatum_quelle", "dokdatum_konf", "dokdatum_alt"]
+           "dokdatum", "dokdatum_quelle", "dokdatum_konf", "dokdatum_alt", "doc_id", "doc_status"]
 IGNORIERT_ORDNER = {"index", "tools", ".git"}
 IGNORIERT_DATEIEN = {"AGENTS.md", "README.md", ".gitignore", "desktop.ini", "Thumbs.db"}
 
@@ -32,7 +32,7 @@ def dateien(wurzel):
     for dirpath, dirnames, files in os.walk(wurzel):
         if os.path.abspath(dirpath) == os.path.abspath(wurzel):  # nur auf oberster Ebene ausblenden
             dirnames[:] = [d for d in dirnames if d not in IGNORIERT_ORDNER and not d.startswith(".")]
-        dirnames[:] = [d for d in dirnames if d.lower() != "komprimiert"]   # abgeleitete Kopien sind keine Dokumente
+        dirnames[:] = [d for d in dirnames if "komprimiert" not in d.lower()]   # abgeleitete Kopien sind keine Dokumente
         for name in files:
             if name in IGNORIERT_DATEIEN or name.startswith("~$"):
                 continue

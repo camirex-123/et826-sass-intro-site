@@ -34,15 +34,15 @@ os.makedirs(os.path.join(wurzel, ziel), exist_ok=True)
 
 with open(os.path.join(wurzel, ziel, "chronologie_auto.csv"), "w", newline="", encoding="utf-8-sig") as f:
     w = csv.writer(f, delimiter=";")
-    w.writerow(["datum", "sicherheit", "quelle_des_datums", "id", "dateiname", "ordner", "weitere_daten", "kopien"])
+    w.writerow(["datum", "sicherheit", "quelle_des_datums", "doc_id", "id", "dateiname", "ordner", "weitere_daten", "kopien"])
     for z in sicher + unsicher:
-        w.writerow([z["dokdatum"], z["dokdatum_konf"], z["dokdatum_quelle"], z["id"], z["name"],
+        w.writerow([z["dokdatum"], z["dokdatum_konf"], z["dokdatum_quelle"], z.get("doc_id", ""), z["id"], z["name"],
                     os.path.dirname(z["pfad"]).replace("\\", "/"), z.get("dokdatum_alt", ""), kopien.get(z["id"], 0)])
 
 
 def zeile(z):
     k = kopien.get(z["id"], 0)
-    return (f"- **{z['dokdatum']}** `{z['id']}` {z['name']}  \n  _Datum: {z['dokdatum_quelle']}, {z['dokdatum_konf']}"
+    return (f"- **{z['dokdatum']}** `{z.get('doc_id') or z['id']}` {z['name']}  \n  _Datum: {z['dokdatum_quelle']}, {z['dokdatum_konf']}"
             f"{'; weitere Daten: ' + z['dokdatum_alt'] if z.get('dokdatum_alt') else ''}"
             f"{'; ' + str(k) + ' Kopie(n)' if k else ''}_")
 
