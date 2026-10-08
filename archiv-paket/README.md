@@ -36,6 +36,12 @@ Schlechte Scans, Handschrift und Fotos von Papier erkennt OCR nur teilweise. Sol
    zeigt nur den PLAN (`index\uebernahme_plan.csv`). Erst mit `--anwenden` wird KOPIERT. Quellen bleiben unveraendert.
    Pro Dokument kommt nur ein Original an, Unklares nach `_ungeklaert`.
 
+## Bilder und Videos verkleinern (Kopien, Originale bleiben)
+1. Einmalig fuer Videos: `winget install Gyan.FFmpeg`, danach neues cmd-Fenster; Bilder brauchen `pip install pillow`.
+2. `python tools\komprimieren.py ARCHIV --ziel "KANZLEI_CODEX_CASE_TEMPLATE/99_CODEX_OUTPUT/komprimiert" --max 5` (erst testen, `--max` weglassen fuer alle).
+   Die Zielordner heissen immer `komprimiert`; sie werden vom Archiv nicht als Dokumente gezaehlt.
+PDFs werden nicht komprimiert (Lesbarkeit, OCR, Beweiswert).
+
 ## Wichtig
 - Kein Git-Repo ohne Passwortschutz oder in einem oeffentlichen Repo. Die `.gitignore` schliesst die Akten aus.
 - Sichere das Archiv verschluesselt (z. B. BitLocker oder Veracrypt-Container) und gib es den Rechtsanwalt nur ueber einen
