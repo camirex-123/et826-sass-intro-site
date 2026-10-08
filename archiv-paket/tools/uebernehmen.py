@@ -1,22 +1,45 @@
 """Baut ein sauberes Archiv durch KOPIEREN (nie Verschieben, nie Loeschen, nie Ueberschreiben).
 - Pro Dokument (Hash) wird nur das gewaehlte Original uebernommen, Duplikate nicht (zuerst duplikate.py ausfuehren).
-- Ziel: <ZIEL>/<Kategorie>/..., Gericht nach Aktenzeichen. Unklare Dokumente kommen nach <ZIEL>/_ungeklaert
+- Ordner wie im Kanzlei-Template (01_ORIGINALE): BEHOERDEN, EMAILS, FOTOS, GERICHT (AG_Schoeneberg/89_F_xx-22, Kammergericht),
+  GUTACHTEN, MEDIZIN, SCHULE, SONSTIGE, VIDEOS, AUDIO. Unklare Dokumente kommen nach SONSTIGE/_UNGEKLAERT
   (nichts geht verloren, aber sichtbar zur Pruefung). Quellen bleiben unveraendert.
 - Bereits im Ziel vorhandene Inhalte (gleicher Hash) werden uebersprungen.
-- Kopiernamen bekommen das Dokumentdatum als Praefix (JJJJ-MM-TT_), bei ungesichertem Datum 0000-00-00_. Das Original behaelt seinen Namen.
+- Originale behalten IMMER ihren urspruenglichen Dateinamen (Regel des Templates). Das Dokumentdatum steht im Index und in der
+  Chronologie. Nur mit --datumspraefix wird JJJJ-MM-TT_ vorangestellt (nicht empfohlen).
 - Standard = nur PLAN (index/uebernahme_plan.csv). Kopiert wird erst mit --anwenden.
 Aufruf:
   python tools/uebernehmen.py ARCHIV_WURZEL --ziel "KANZLEI_CODEX_CASE_TEMPLATE/01_ORIGINALE"
-       [--ausschliessen "KANZLEI_CODEX_CASE_TEMPLATE,index"] [--ohne-typen md,csv,ps1,py,svg] [--anwenden]
+       [--ausschliessen "KANZLEI_CODEX_CASE_TEMPLATE,index"] [--ohne-typen md,csv,ps1,py,svg] [--anwenden] [--datumspraefix]
 Vorher: inventar.py, duplikate.py, ocr.py (damit der Inhalt in die Zuordnung eingeht)."""
 import csv, os, re, shutil, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from archiv_lib import *
-from sortieren import bewerten, entscheide, sicher
+from sortieren import bewerten, entscheide, text_anfang
 
-LABEL = {"01_Verfahren": "Gericht_Verfahren", "02_Behoerden": "Behoerden_Jugendamt", "03_Medizin_Gutachten": "Medizin_Gutachten",
-         "04_Korrespondenz": "Korrespondenz", "05_Beweise": "Fotos_Screenshots_Beweise", "06_Eigene_Texte": "Eigene_Entwuerfe",
-         "07_Schule_Kita": "Schule_Kita", "08_Polizei": "Polizei", "09_Vollmachten": "Vollmachten"}
+# Zuordnung der Kategorien zu den Ordnernamen des Templates (README_CODEX.md, 01_ORIGINALE)
+LABEL = {"01_Verfahren": "GERICHT", "02_Behoerden": "BEHOERDEN", "03_Medizin_Gutachten": "MEDIZIN",
+         "04_Korrespondenz": "EMAILS", "05_Beweise": "FOTOS", "06_Eigene_Texte": "SONSTIGE/EIGENE_ENTWUERFE",
+         "07_Schule_Kita": "SCHULE", "08_Polizei": "BEHOERDEN/POLIZEI", "09_Vollmachten": "SONSTIGE/VOLLMACHTEN"}
+VIDEO = {".mp4", ".mov", ".avi", ".mkv", ".m4v", ".3gp", ".wmv", ".webm"}
+AUDIO = {".mp3", ".m4a", ".wav", ".opus", ".ogg", ".aac"}
+
+
+def az_ordner(az):
+    """'89 F 36/22' -> '89_F_36-22' (Schema des Templates)."""
+    return re.sub(r"[^A-Za-z0-9_-]+", "", re.sub(r"\s+", "_", az.strip()).replace("/", "-")) or "ohne-az"
+
+
+def ziel_unterordner(kat, az, name, text, ext):
+    if kat == "03_Medizin_Gutachten" and ("gutachten" in name or "sachverst" in name or "gutachten" in text[:1500]):
+        return "GUTACHTEN"
+    if kat == "05_Beweise":
+        return "VIDEOS" if ext in VIDEO else "AUDIO" if ext in AUDIO else "FOTOS"
+    if kat == "01_Verfahren":
+        t = (name + " " + text[:4000]).lower()
+        stufe = "Kammergericht" if "kammergericht" in t else "AG_Schoeneberg" if ("sch\u00f6neberg" in t or "schoeneberg" in t or az.startswith("89")) else ""
+        teile = ["GERICHT"] + ([stufe] if stufe else []) + ([az_ordner(az)] if az else [])
+        return "/".join(teile)
+    return LABEL.get(kat, kat)
 
 
 def opt(args, name, default=""):
@@ -25,6 +48,7 @@ def opt(args, name, default=""):
 
 args = sys.argv[1:]
 anwenden = "--anwenden" in args
+datumspraefix = "--datumspraefix" in args
 ziel = opt(args, "--ziel").replace("\\", "/").strip("/")
 if not ziel:
     sys.exit("FEHLER: --ziel fehlt, z. B. --ziel \"KANZLEI_CODEX_CASE_TEMPLATE/01_ORIGINALE\"")
@@ -53,14 +77,13 @@ for z in zeilen:
     punkte, gruende, az = bewerten(quelle, text_pfad(wurzel, z["id"]))
     kat, konf = entscheide(punkte)
     if konf == "niedrig" or not kat:
-        unter = "_ungeklaert"
+        unter = "SONSTIGE/_UNGEKLAERT"
     else:
-        unter = LABEL.get(kat, kat)
-        if kat == "01_Verfahren" and az:
-            unter += "/" + sicher(az)
+        txt = text_anfang(quelle, text_pfad(wurzel, z["id"])).lower()
+        unter = ziel_unterordner(kat, az, z["name"].lower(), txt, os.path.splitext(p)[1].lower())
     dd = z.get("dokdatum", "")
     pre = (dd if dd and z.get("dokdatum_konf") in ("hoch", "mittel") else "0000-00-00") + "_"
-    kname = z["name"] if re.match(r"^\d{4}-\d{2}-\d{2}_", z["name"]) else pre + z["name"]
+    kname = z["name"] if (not datumspraefix or re.match(r"^\d{4}-\d{2}-\d{2}_", z["name"])) else pre + z["name"]
     zd = f"{ziel}/{unter}/{kname}"
     i = 1
     while zd in belegt or os.path.exists(os.path.join(wurzel, zd)):

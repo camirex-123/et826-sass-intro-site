@@ -68,6 +68,26 @@ for nr, (h, g) in enumerate(sorted(gruppen.items()), 1):
                     "original_pfad": orig["pfad"], "kopien_ids": " ".join(z["id"] for z in g[1:]),
                     "kopien_pfade": " | ".join(z["pfad"] for z in g[1:])})
 
+# Arbeitskopien ('name.jpg.arbeitskopie.jpg') gehoeren zu ihrem Original, sind aber kein eigenes Dokument
+RE_AK = re.compile(r"^(.*)\.arbeitskopie(\.[^.]+)$", re.I)
+nach_name = {}
+for z in zeilen:
+    if z["status"] != "ausgelagert":
+        nach_name.setdefault(z["name"].lower(), []).append(z)
+arbeitskopien = 0
+for z in zeilen:
+    m = RE_AK.match(z["name"])
+    if not m or z["status"] == "ausgelagert":
+        continue
+    kand = [o for o in nach_name.get(m.group(1).lower(), []) if o is not z and o["status"] != "duplikat"]
+    if kand:
+        if z["status"] not in FEST:
+            z["status"] = "duplikat"
+        z["duplikat_von"] = kand[0]["id"]
+        if "Arbeitskopie von" not in z["beschreibung"]:
+            z["beschreibung"] = (z["beschreibung"] + " | " if z["beschreibung"] else "") + "Arbeitskopie von " + kand[0]["id"]
+        arbeitskopien += 1
+zusatz += arbeitskopien
 schreibe_index(wurzel, zeilen)
 out = os.path.join(wurzel, "index", "duplikat_gruppen.csv")
 with open(out, "w", newline="", encoding="utf-8-sig") as f:
@@ -75,6 +95,7 @@ with open(out, "w", newline="", encoding="utf-8-sig") as f:
     w.writeheader()
     w.writerows(bericht)
 print(f"{len(bericht)} Duplikat-Gruppen, {zusatz} ueberzaehlige Kopien, {len(zeilen) - zusatz} verschiedene Dokumente")
+print(f"davon {arbeitskopien} Arbeitskopien (.arbeitskopie) ihrem Original zugeordnet")
 print("Kopien nach Ordner (Kopie liegt in -> Original liegt in):")
 for (a, b), n in sorted(nach_ordner.items(), key=lambda kv: -kv[1]):
     print(f"  {n:4}  {a[:38]}  ->  {b[:38]}")

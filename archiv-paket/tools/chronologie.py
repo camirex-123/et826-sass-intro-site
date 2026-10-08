@@ -50,6 +50,9 @@ def zeile(z):
 md = ["# Chronologie der Dokumente", "",
       "Sortiert nach **Dokumentdatum** (nicht Download-Datum). Quelle und Sicherheit stehen bei jedem Eintrag.",
       "Nur Dokumente mit gesichertem Datum (hoch/mittel) stehen in der Zeitleiste; die uebrigen am Ende zur Pruefung.",
+      "",
+      "**Hinweis:** Diese Liste ordnet Dokumente nach Datum. Aus der zeitlichen Abfolge folgt keine Kausalitaet. Sie ist eine Arbeitsgrundlage",
+      "und ersetzt weder Chronologie-Ereignisse (CHR-) noch eine rechtliche Bewertung. Das Datum ist maschinell ermittelt und zu pruefen.",
       f"{len(sicher)} Dokumente mit gesichertem Datum, {len(unsicher)} zur Pruefung.", ""]
 jahr = monat = None
 for z in sicher:

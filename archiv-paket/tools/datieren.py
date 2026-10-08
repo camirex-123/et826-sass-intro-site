@@ -4,6 +4,7 @@ Quellen in dieser Rangfolge (Spalte dokdatum_quelle, Sicherheit in dokdatum_konf
   2. dateiname   2022-06-14, 20220614, 14.06.2022, 05_07_2021         -> hoch;  220623-... (JJMMTT) -> mittel
   3. exif        Aufnahmedatum von Fotos                              -> hoch
   4. text        erstes Datum im Text (PDF, docx, txt, OCR-Text)      -> mittel
+                 (Geburtsdaten nach 'geb.'/'geboren' zaehlen nicht; Dokumente ueber 15 Seiten -> niedrig, 'text-mehrseitig')
   5. video       Aufnahmedatum aus den Videodaten (ffprobe)           -> mittel
   6. pdf/docx    Erstellungsdatum der Datei                           -> niedrig
   7. dateiaenderung  Datum der Datei auf dem PC                       -> niedrig (nur Notbehelf!)
@@ -24,6 +25,8 @@ RE_KOMPAKT = re.compile(r"(?<!\d)(20[0-2]\d)(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])
 RE_DE = re.compile(r"(?<!\d)(0?[1-9]|[12]\d|3[01])\.(0?[1-9]|1[0-2])\.(20[0-2]\d|[12]\d)(?!\d)")
 RE_DE_STRICH = re.compile(r"(?<!\d)(0?[1-9]|[12]\d|3[01])[-_](0?[1-9]|1[0-2])[-_](20[0-2]\d)(?!\d)")
 RE_DE_MONAT = re.compile(r"(?<!\d)(\d{1,2})\.?\s*(Jan|Feb|M[aä]r|Mrz|Apr|Mai|Jun|Jul|Aug|Sep|Okt|Nov|Dez)[a-zäöü]*\.?,?\s*(20[0-2]\d)", re.I)
+RE_DE_STRICH2 = re.compile(r"(?<!\d)(0?[1-9]|[12]\d|3[01])[-_](0?[1-9]|1[0-2])[-_](1\d|2[0-6])(?!\d)")
+GEB = re.compile(r"(geb\.|geboren|geburtsdatum|\bgeb\b|\*)\s*$", re.I)
 RE_YYMMDD = re.compile(r"(?<!\d)(1\d|2[0-6])(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(?=[-_ ])")
 
 
@@ -41,20 +44,26 @@ def jahr(j):
 
 
 def funde(text, kompakt=False):
-    """Alle gueltigen Daten im Text mit Position (ohne JJMMTT)."""
+    """Alle gueltigen Daten im Text mit Position (ohne JJMMTT). Geburtsdaten (nach 'geb.', 'geboren', '*') zaehlen nicht."""
     out = []
+
+    def add(m, x):
+        if x and not GEB.search(text[max(0, m.start() - 25):m.start()]):
+            out.append((m.start(), x))
     for m in RE_ISO.finditer(text):
-        x = d_ok(m[1], m[2], m[3]); x and out.append((m.start(), x))
+        add(m, d_ok(m[1], m[2], m[3]))
     if kompakt:
         for m in RE_KOMPAKT.finditer(text):
-            x = d_ok(m[1], m[2], m[3]); x and out.append((m.start(), x))
+            add(m, d_ok(m[1], m[2], m[3]))
     for m in RE_DE.finditer(text):
-        x = d_ok(jahr(m[3]), m[2], m[1]); x and out.append((m.start(), x))
+        add(m, d_ok(jahr(m[3]), m[2], m[1]))
     for m in RE_DE_STRICH.finditer(text):
-        x = d_ok(m[3], m[2], m[1]); x and out.append((m.start(), x))
+        add(m, d_ok(m[3], m[2], m[1]))
+    for m in RE_DE_STRICH2.finditer(text):
+        add(m, d_ok(2000 + int(m[3]), m[2], m[1]))
     for m in RE_DE_MONAT.finditer(text):
         mo = MON.get(m[2].lower()[:3].replace("ä", "a")) or MON.get(m[2].lower()[:3])
-        x = mo and d_ok(m[3], mo, m[1]); x and out.append((m.start(), x))
+        add(m, mo and d_ok(m[3], mo, m[1]))
     out.sort()
     return out
 
@@ -103,9 +112,9 @@ def video_datum(p):
 
 
 def text_und_meta(p, tp):
-    """(Text, Metadatum) – Text aus OCR-Datei oder direkt aus der Datei gelesen."""
+    """(Text, Metadatum, Seitenzahl) – Text aus OCR-Datei oder direkt aus der Datei gelesen."""
     ext = os.path.splitext(p)[1].lower()
-    text, meta = "", None
+    text, meta, seiten = "", None, 0
     try:
         if tp and os.path.exists(tp):
             text = open(tp, encoding="utf-8", errors="ignore").read(6000)
@@ -125,13 +134,14 @@ def text_und_meta(p, tp):
             except ImportError:
                 import fitz
             doc = fitz.open(p)
+            seiten = len(doc)
             if not text:
                 text = "\n".join(doc[i].get_text("text") for i in range(min(3, len(doc))))[:6000]
             m = re.match(r"D:(\d{4})(\d{2})(\d{2})", doc.metadata.get("creationDate", "") or "")
             meta = d_ok(m[1], m[2], m[3]) if m else None
     except Exception:
         pass
-    return text, meta
+    return text, meta, seiten
 
 
 def main():
@@ -165,10 +175,15 @@ def main():
         if ext in (".jpg", ".jpeg", ".png", ".tif", ".tiff", ".webp"):
             x = exif_datum(p)
             x and kand.append((2, x, "hoch", "exif"))
-        text, meta = text_und_meta(p, text_pfad(wurzel, z["id"]))
+        text, meta, seiten = text_und_meta(p, text_pfad(wurzel, z["id"]))
+        try:
+            seiten = max(seiten, int(z.get("seiten") or 0))
+        except ValueError:
+            pass
         tf = [x for _, x in funde(text) if not mt or x < mt]
         if tf:
-            kand.append((3, tf[0], "mittel", "text"))
+            lang = seiten > 15      # Akten, Buecher: ein einzelnes Datum sagt wenig, bitte pruefen
+            kand.append((3, tf[0], "niedrig" if lang else "mittel", "text-mehrseitig" if lang else "text"))
             alt += tf[1:5]
         if ext in (".mp4", ".mov", ".avi", ".mkv", ".m4v", ".3gp"):
             x = video_datum(p)

@@ -76,7 +76,8 @@ def main():
             continue
         name = os.path.splitext(z["name"])[0]
         zext = ".mp4" if ext in VIDEO else ext
-        zp = os.path.join(wurzel, ziel, f"{z['id']}__{name}{zext}")
+        dd = z.get("dokdatum") if z.get("dokdatum_konf") in ("hoch", "mittel") else ""
+        zp = os.path.join(wurzel, ziel, f"{dd or '0000-00-00'}_{z['id']}_KOMPRIMIERT_{name}{zext}")
         os.makedirs(os.path.dirname(zp), exist_ok=True)
         try:
             (video(q, zp, crf) if ext in VIDEO else bild(q, zp, kante, qual))
