@@ -26,7 +26,7 @@ RE_DE = re.compile(r"(?<!\d)(0?[1-9]|[12]\d|3[01])\.(0?[1-9]|1[0-2])\.(20[0-2]\d
 RE_DE_STRICH = re.compile(r"(?<!\d)(0?[1-9]|[12]\d|3[01])[-_](0?[1-9]|1[0-2])[-_](20[0-2]\d)(?!\d)")
 RE_DE_MONAT = re.compile(r"(?<!\d)(\d{1,2})\.?\s*(Jan|Feb|M[aä]r|Mrz|Apr|Mai|Jun|Jul|Aug|Sep|Okt|Nov|Dez)[a-zäöü]*\.?,?\s*(20[0-2]\d)", re.I)
 RE_DE_STRICH2 = re.compile(r"(?<!\d)(0?[1-9]|[12]\d|3[01])[-_](0?[1-9]|1[0-2])[-_](1\d|2[0-6])(?!\d)")
-GEB = re.compile(r"(geb\.|geboren|geburtsdatum|\bgeb\b|\*)\s*$", re.I)
+GEB = re.compile(r"(geb\.|geboren|geburtsdatum|\bgeb\b|\*)[^\d]{0,14}$", re.I)       # auch 'geb. am 05.12.2012'
 RE_YYMMDD = re.compile(r"(?<!\d)(1\d|2[0-6])(0[1-9]|1[0-2])(0[1-9]|[12]\d|3[01])(?=[-_ ])")
 
 

@@ -12,7 +12,8 @@ Aufruf:
        [--ausschliessen "KANZLEI_CODEX_CASE_TEMPLATE,index"] [--ohne-typen md,csv,ps1,py,svg] [--anwenden] [--datumspraefix]
 Handzuordnung: Beim Plan entsteht index/zuordnung_manuell_VORLAGE.csv mit allen unklaren Dateien (Spalte 'ordner' leer). In Excel
 ausfuellen (z. B. GERICHT/AG_Schoeneberg, MEDIZIN, SCHULE), als index/zuordnung_manuell.csv speichern (CSV, Trennzeichen Semikolon).
-Beim naechsten Lauf gilt dieser Ordner statt der automatischen Zuordnung.
+Beim naechsten Lauf gilt dieser Ordner statt der automatischen Zuordnung. Eintrag '-' = nicht kopieren (eigene Entwuerfe, abgeleitete
+Auszuege: sie gehoeren laut Template nicht nach 01_ORIGINALE).
 Vorher: inventar.py, duplikate.py, ocr.py (damit der Inhalt in die Zuordnung eingeht)."""
 import csv, os, re, shutil, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -100,6 +101,10 @@ for z in zeilen:
     else:
         txt = text_anfang(quelle, text_pfad(wurzel, z["id"])).lower()
         unter = ziel_unterordner(kat, az, z["name"].lower(), txt, os.path.splitext(p)[1].lower())
+    if unter == "-" or unter.upper() == "NICHT" or unter == "SONSTIGE/EIGENE_ENTWUERFE":
+        plan.append({"id": z["id"], "quelle": p, "ziel": "", "kategorie": "nicht kopiert", "konfidenz": konf or "",
+                     "aktion": "nicht in Originale (Entwurf/abgeleitet)"})
+        continue
     dd = z.get("dokdatum", "")
     pre = (dd if dd and z.get("dokdatum_konf") in ("hoch", "mittel") else "0000-00-00") + "_"
     kname = z["name"] if (not datumspraefix or re.match(r"^\d{4}-\d{2}-\d{2}_", z["name"])) else pre + z["name"]
