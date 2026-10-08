@@ -156,9 +156,17 @@ def main():
         print(f"{z['id']}  {st:18} {n:3} S.  {z['pfad']}")
     schreibe_index(wurzel, zeilen)
     print("Zusammenfassung:", ", ".join(f"{k}={v}" for k, v in sorted(stat.items())) or "nichts zu tun")
-    schwach = [z for z in zeilen if z.get("text_status") in ("ocr-schwach", "leer", "fehler")]
+    schwach = [z for z in zeilen if z.get("text_status") in ("ocr-schwach", "leer", "fehler")
+               and z.get("status") not in ("duplikat", "ausgelagert")]
     if schwach:
-        print(f"{len(schwach)} Dokumente manuell pruefen (schlechter Scan, leer oder Fehler): index/dokumente.csv, Spalte text_status")
+        je = {}
+        for z in schwach:
+            je[z["text_status"]] = je.get(z["text_status"], 0) + 1
+        print(f"{len(schwach)} aktive Dokumente (ohne Duplikate/Ausgelagerte) manuell pruefen: "
+              + ", ".join(f"{k}={v}" for k, v in sorted(je.items())))
+        for z in schwach:
+            if z["text_status"] != "leer":
+                print(f"  {z['id']}  {z['text_status']:10} {z['pfad']}")
 
 
 if __name__ == "__main__":
