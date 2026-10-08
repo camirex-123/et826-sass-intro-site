@@ -31,7 +31,7 @@ for n in os.listdir(ordner):
     z = zeilen.get(n[:-4])
     if not n.endswith(".txt") or not z or z["status"] in ("duplikat", "ausgelagert"):
         continue
-    text = open(os.path.join(ordner, n), encoding="utf-8", errors="ignore").read()
+    text = lies_sidecar(os.path.join(ordner, n))
     ms = list(muster.finditer(text))
     if not ms:
         continue

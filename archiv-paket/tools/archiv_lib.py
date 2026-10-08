@@ -69,5 +69,15 @@ def jetzt():
     return datetime.now().strftime("%Y-%m-%d %H:%M")
 
 
+def lies_sidecar(pfad, grenze=None):
+    """Text einer index/text-Datei OHNE Kopfzeile '# Quelle: ...'. Die Kopfzeile enthaelt den Dateipfad; Woerter und Daten aus
+    Ordnernamen duerfen weder bei der Zuordnung noch bei Datierung oder Suche als Dokumenttext zaehlen."""
+    with open(pfad, encoding="utf-8", errors="ignore") as f:
+        t = f.read(grenze) if grenze else f.read()
+    if t.startswith("# Quelle:"):
+        t = t.split("\n", 1)[1] if "\n" in t else ""
+    return t
+
+
 def text_pfad(wurzel, doc_id):
     return os.path.join(wurzel, "index", "text", doc_id + ".txt")

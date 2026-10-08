@@ -41,7 +41,7 @@ for n in sorted(os.listdir(ordner)):
     p = z["pfad"].replace("\\", "/")
     if any(p == a or p.startswith(a + "/") for a in aus) or os.path.splitext(p)[1].lower() in (".md", ".csv", ".ps1", ".py", ".svg"):
         continue
-    text = open(os.path.join(ordner, n), encoding="utf-8", errors="ignore").read()
+    text = lies_sidecar(os.path.join(ordner, n))
     marken = [(m.start(), int(m[1])) for m in re.finditer(r"=== Seite (\d+) ===", text)]
     je_seite = {}
     for pos, d in funde(text):

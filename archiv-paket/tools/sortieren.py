@@ -45,8 +45,7 @@ AZ = re.compile(r"(\b\d{1,2}\s?[A-Z]{1,3}\s?\d{1,4}\s?/\s?\d{2}\b"      # 2 F 84
 
 def text_anfang(p, tp=None):
     if tp and os.path.exists(tp):
-        with open(tp, encoding="utf-8", errors="ignore") as f:
-            return f.read(20000)
+        return re.sub(r"=== Seite \d+ ===", " ", lies_sidecar(tp, 20000))
     ext = os.path.splitext(p)[1].lower()
     try:
         if ext in (".txt", ".md", ".eml", ".csv", ".rtf", ".html", ".htm"):

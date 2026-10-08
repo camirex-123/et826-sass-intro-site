@@ -146,7 +146,7 @@ def main():
         except Exception as e:
             print("FEHLER", z["id"], z["pfad"], type(e).__name__, e)
             text, st, n = "", "fehler", 0
-        if text:
+        if text and st != "leer":
             with open(text_pfad(wurzel, z["id"]), "w", encoding="utf-8") as f:
                 f.write(f"# Quelle: {z['id']} | {z['pfad']} | Status: {st}\n{text}")
         z["text_status"], z["seiten"] = st, str(n)

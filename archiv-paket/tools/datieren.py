@@ -117,7 +117,7 @@ def text_und_meta(p, tp):
     text, meta, seiten = "", None, 0
     try:
         if tp and os.path.exists(tp):
-            text = open(tp, encoding="utf-8", errors="ignore").read(6000)
+            text = lies_sidecar(tp, 6000)
         if ext in (".txt", ".md", ".csv", ".eml", ".html", ".htm", ".rtf") and not text:
             text = open(p, "rb").read(6000).decode("utf-8", "ignore")
         elif ext == ".docx":
