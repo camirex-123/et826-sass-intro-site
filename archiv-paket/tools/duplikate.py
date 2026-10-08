@@ -32,7 +32,7 @@ def rang(z):
         if z["pfad"] == b or z["pfad"].startswith(b + "/"):
             r = k
             break
-    kopie = 1 if re.search(r"kopie|copy|\(\d+\)|[ _-]\d{1,2}$", os.path.splitext(z["name"])[0].lower()) else 0
+    kopie = 1 if re.search(r"kopie|copy|\(\d+\)", os.path.splitext(z["name"])[0].lower()) else 0
     return (r, 0 if z["status"] in FEST else 1, kopie, z["geaendert"] or "9999", len(z["pfad"]), z["pfad"])
 
 
