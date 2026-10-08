@@ -111,9 +111,10 @@ def main():
     zeilen = lese_index(wurzel)
     os.makedirs(os.path.join(wurzel, "index", "text"), exist_ok=True)
     stat = {}
-    mit_text = {}                       # SHA-256 -> Zeile mit schon gelesenem Text (gleicher Inhalt = gleicher Text)
+    mit_text = {}                       # SHA-256 -> Zeile mit schon gelesenem Text oder bekanntem Status (gleicher Inhalt = gleiches Ergebnis)
+    FERTIG = ("text", "ocr", "ocr-schwach", "leer", "nicht-unterstuetzt")
     for z in zeilen:
-        if z.get("sha256") and os.path.exists(text_pfad(wurzel, z["id"])):
+        if z.get("sha256") and (os.path.exists(text_pfad(wurzel, z["id"])) or z.get("text_status") in FERTIG):
             mit_text.setdefault(z["sha256"], z)
     for z in zeilen:
         if z["status"] in ("duplikat", "ausgelagert") or (nur and z["id"] != nur):
@@ -133,10 +134,11 @@ def main():
             continue
         quelle_z = mit_text.get(z["sha256"])
         if quelle_z is not None and quelle_z is not z and not neu and not os.path.exists(text_pfad(wurzel, z["id"])):
-            with open(text_pfad(wurzel, quelle_z["id"]), encoding="utf-8") as f:
-                alt = f.read().split("\n", 1)
-            with open(text_pfad(wurzel, z["id"]), "w", encoding="utf-8") as f:
-                f.write(f"# Quelle: {z['id']} | {z['pfad']} | Status: {quelle_z['text_status']} | Text uebernommen von {quelle_z['id']} (gleicher Inhalt)\n" + (alt[1] if len(alt) > 1 else ""))
+            if os.path.exists(text_pfad(wurzel, quelle_z["id"])):
+                with open(text_pfad(wurzel, quelle_z["id"]), encoding="utf-8") as f:
+                    alt = f.read().split("\n", 1)
+                with open(text_pfad(wurzel, z["id"]), "w", encoding="utf-8") as f:
+                    f.write(f"# Quelle: {z['id']} | {z['pfad']} | Status: {quelle_z['text_status']} | Text uebernommen von {quelle_z['id']} (gleicher Inhalt)\n" + (alt[1] if len(alt) > 1 else ""))
             z["text_status"], z["seiten"] = quelle_z["text_status"], quelle_z["seiten"]
             stat["uebernommen"] = stat.get("uebernommen", 0) + 1
             print(f"{z['id']}  uebernommen von {quelle_z['id']}  {z['pfad']}")
