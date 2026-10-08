@@ -140,7 +140,9 @@ for r in plan:
     if r["aktion"] == "kopieren":
         k = "/".join(r["kategorie"].split("/")[:2])      # bis zu zwei Ebenen, z. B. SONSTIGE/_UNGEKLAERT
         zaehl[k] = zaehl.get(k, 0) + 1
-print(f"Plan: {sum(zaehl.values())} Dateien kopieren, {sum(1 for r in plan if r['aktion'] != 'kopieren')} schon im Ziel")
+schon = sum(1 for r in plan if r["aktion"] == "schon im Ziel vorhanden")
+entw = sum(1 for r in plan if r["aktion"].startswith("nicht in Originale"))
+print(f"Plan: {sum(zaehl.values())} Dateien kopieren, {schon} schon im Ziel, {entw} als Entwurf/abgeleitet nicht kopiert")
 for k, n in sorted(zaehl.items(), key=lambda kv: -kv[1]):
     print(f"  {n:4}  {k}")
 print("Plan-Datei:", out)
