@@ -12,7 +12,8 @@ Aufruf:
 Optional: --sprache deu+eng  --dpi 300
   --typen pdf,docx        nur diese Dateitypen
   --ordner EINGANG_KITA   nur Pfade, die so beginnen
-  --max 50                hoechstens 50 Dokumente pro Lauf (zum Testen)"""
+  --max 50                hoechstens 50 Dokumente pro Lauf (zum Testen)
+  --ungedatiert           nur Dokumente, deren Datum noch ungesichert ist (Spalte dokdatum_konf = niedrig)"""
 import os, re, shutil, subprocess, sys, tempfile, zipfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from archiv_lib import *
@@ -101,6 +102,7 @@ def main():
     typen = {"." + t.strip().lower().lstrip(".") for t in args[args.index("--typen") + 1].split(",")} if "--typen" in args else None
     ordner = args[args.index("--ordner") + 1].replace("\\", "/").strip("/") if "--ordner" in args else None
     maxn = int(args[args.index("--max") + 1]) if "--max" in args else None
+    ungedatiert = "--ungedatiert" in args
     rest = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] not in ("--sprache", "--dpi", "--id", "--typen", "--ordner", "--max"))]
     wurzel = os.path.abspath(rest[0] if rest else os.getcwd())
     tess = finde_tesseract()
@@ -115,6 +117,8 @@ def main():
         if not neu and not nur and z.get("text_status") in ("text", "ocr", "ocr-schwach", "leer", "nicht-unterstuetzt"):
             continue
         if typen and os.path.splitext(z["pfad"])[1].lower() not in typen:
+            continue
+        if ungedatiert and z.get("dokdatum_konf") not in ("niedrig", "", None):
             continue
         if ordner and not z["pfad"].startswith(ordner):
             continue

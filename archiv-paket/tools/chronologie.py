@@ -3,7 +3,9 @@ Ergebnis in <ZIEL>: chronologie_auto.csv (fuer Tabellen/Codex) und chronologie_a
 Bestehende Dateien mit anderen Namen im Zielordner werden nie angefasst.
 Gesicherte Daten (hoch/mittel) stehen in der Zeitleiste; ungesicherte (niedrig) getrennt am Ende zur Pruefung.
 Duplikate erscheinen nicht einzeln, sondern als Anzahl 'Kopien' beim Original.
-Aufruf:  python tools/chronologie.py ARCHIV_WURZEL --ziel "KANZLEI_CODEX_CASE_TEMPLATE/02_CHRONOLOGIE" """
+Arbeitsdateien (Standard: md, csv, ps1, py, svg) und --ausschliessen-Ordner erscheinen nicht.
+Aufruf:  python tools/chronologie.py ARCHIV_WURZEL --ziel "KANZLEI_CODEX_CASE_TEMPLATE/02_CHRONOLOGIE"
+         [--ohne-typen md,csv,ps1,py,svg] [--ausschliessen "KANZLEI_CODEX_CASE_TEMPLATE/00_MASTER"] """
 import csv, os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from archiv_lib import *
@@ -12,7 +14,9 @@ args = sys.argv[1:]
 ziel = args[args.index("--ziel") + 1].replace("\\", "/").strip("/") if "--ziel" in args else ""
 if not ziel:
     sys.exit('FEHLER: --ziel fehlt, z. B. --ziel "KANZLEI_CODEX_CASE_TEMPLATE/02_CHRONOLOGIE"')
-rest = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] != "--ziel")]
+ohne = {"." + t.strip().lower().lstrip(".") for t in (args[args.index("--ohne-typen") + 1] if "--ohne-typen" in args else "md,csv,ps1,py,svg").split(",") if t.strip()}
+aus = [a.strip().replace("\\", "/").strip("/") for a in (args[args.index("--ausschliessen") + 1] if "--ausschliessen" in args else "").split(",") if a.strip()]
+rest = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] not in ("--ziel", "--ohne-typen", "--ausschliessen"))]
 wurzel = os.path.abspath(rest[0] if rest else os.getcwd())
 zeilen = lese_index(wurzel)
 kopien = {}
@@ -20,7 +24,9 @@ for z in zeilen:
     if z["status"] == "duplikat" and z["duplikat_von"]:
         kopien[z["duplikat_von"]] = kopien.get(z["duplikat_von"], 0) + 1
 dok = [z for z in zeilen if z["status"] != "duplikat" and z.get("dokdatum")
-       and not z["pfad"].replace("\\", "/").startswith(ziel + "/")]
+       and not z["pfad"].replace("\\", "/").startswith(ziel + "/")
+       and os.path.splitext(z["name"])[1].lower() not in ohne
+       and not any(z["pfad"].replace("\\", "/").startswith(a + "/") for a in aus)]
 dok.sort(key=lambda z: (z["dokdatum"], z["name"].lower()))
 sicher = [z for z in dok if z["dokdatum_konf"] in ("hoch", "mittel")]
 unsicher = [z for z in dok if z["dokdatum_konf"] not in ("hoch", "mittel")]
