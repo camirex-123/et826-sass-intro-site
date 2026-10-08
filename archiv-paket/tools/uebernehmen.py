@@ -1,0 +1,105 @@
+"""Baut ein sauberes Archiv durch KOPIEREN (nie Verschieben, nie Loeschen, nie Ueberschreiben).
+- Pro Dokument (Hash) wird nur das gewaehlte Original uebernommen, Duplikate nicht (zuerst duplikate.py ausfuehren).
+- Ziel: <ZIEL>/<Kategorie>/..., Gericht nach Aktenzeichen. Unklare Dokumente kommen nach <ZIEL>/_ungeklaert
+  (nichts geht verloren, aber sichtbar zur Pruefung). Quellen bleiben unveraendert.
+- Bereits im Ziel vorhandene Inhalte (gleicher Hash) werden uebersprungen.
+- Standard = nur PLAN (index/uebernahme_plan.csv). Kopiert wird erst mit --anwenden.
+Aufruf:
+  python tools/uebernehmen.py ARCHIV_WURZEL --ziel "KANZLEI_CODEX_CASE_TEMPLATE/01_ORIGINALE"
+       [--ausschliessen "KANZLEI_CODEX_CASE_TEMPLATE,index"] [--ohne-typen md,csv,ps1,py,svg] [--anwenden]
+Vorher: inventar.py, duplikate.py, ocr.py (damit der Inhalt in die Zuordnung eingeht)."""
+import csv, os, shutil, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from archiv_lib import *
+from sortieren import bewerten, entscheide, sicher
+
+LABEL = {"01_Verfahren": "Gericht_Verfahren", "02_Behoerden": "Behoerden_Jugendamt", "03_Medizin_Gutachten": "Medizin_Gutachten",
+         "04_Korrespondenz": "Korrespondenz", "05_Beweise": "Fotos_Screenshots_Beweise", "06_Eigene_Texte": "Eigene_Entwuerfe",
+         "07_Schule_Kita": "Schule_Kita", "08_Polizei": "Polizei", "09_Vollmachten": "Vollmachten"}
+
+
+def opt(args, name, default=""):
+    return args[args.index(name) + 1] if name in args else default
+
+
+args = sys.argv[1:]
+anwenden = "--anwenden" in args
+ziel = opt(args, "--ziel").replace("\\", "/").strip("/")
+if not ziel:
+    sys.exit("FEHLER: --ziel fehlt, z. B. --ziel \"KANZLEI_CODEX_CASE_TEMPLATE/01_ORIGINALE\"")
+ausgeschlossen = [a.strip().replace("\\", "/").strip("/") for a in opt(args, "--ausschliessen").split(",") if a.strip()]
+ohne = {"." + t.strip().lower().lstrip(".") for t in opt(args, "--ohne-typen").split(",") if t.strip()}
+rest = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] not in ("--ziel", "--ausschliessen", "--ohne-typen"))]
+wurzel = os.path.abspath(rest[0] if rest else os.getcwd())
+zeilen = lese_index(wurzel)
+
+im_ziel = {z["sha256"] for z in zeilen if z["pfad"].startswith(ziel + "/")}
+plan, belegt = [], set()
+for z in zeilen:
+    p = z["pfad"]
+    if z["status"] == "duplikat" or p.startswith(ziel + "/"):
+        continue
+    if any(p == a or p.startswith(a + "/") for a in ausgeschlossen):
+        continue
+    if os.path.splitext(p)[1].lower() in ohne:
+        continue
+    if z["sha256"] in im_ziel:
+        plan.append({"id": z["id"], "quelle": p, "ziel": "", "kategorie": "", "konfidenz": "", "aktion": "schon im Ziel vorhanden"})
+        continue
+    quelle = os.path.join(wurzel, p)
+    if not os.path.exists(quelle):
+        continue
+    punkte, gruende, az = bewerten(quelle, text_pfad(wurzel, z["id"]))
+    kat, konf = entscheide(punkte)
+    if konf == "niedrig" or not kat:
+        unter = "_ungeklaert"
+    else:
+        unter = LABEL.get(kat, kat)
+        if kat == "01_Verfahren" and az:
+            unter += "/" + sicher(az)
+    zd = f"{ziel}/{unter}/{z['name']}"
+    i = 1
+    while zd in belegt or os.path.exists(os.path.join(wurzel, zd)):
+        b, e = os.path.splitext(z["name"])
+        zd = f"{ziel}/{unter}/{b}__{i}{e}"
+        i += 1
+    belegt.add(zd)
+    plan.append({"id": z["id"], "quelle": p, "ziel": zd, "kategorie": unter, "konfidenz": konf or "niedrig",
+                 "aktion": "kopieren"})
+
+out = os.path.join(wurzel, "index", "uebernahme_plan.csv")
+os.makedirs(os.path.dirname(out), exist_ok=True)
+with open(out, "w", newline="", encoding="utf-8-sig") as f:
+    w = csv.DictWriter(f, fieldnames=["id", "quelle", "ziel", "kategorie", "konfidenz", "aktion"], delimiter=";")
+    w.writeheader()
+    w.writerows(plan)
+
+zaehl = {}
+for r in plan:
+    if r["aktion"] == "kopieren":
+        k = r["kategorie"].split("/")[0]
+        zaehl[k] = zaehl.get(k, 0) + 1
+print(f"Plan: {sum(zaehl.values())} Dateien kopieren, {sum(1 for r in plan if r['aktion'] != 'kopieren')} schon im Ziel")
+for k, n in sorted(zaehl.items(), key=lambda kv: -kv[1]):
+    print(f"  {n:4}  {k}")
+print("Plan-Datei:", out)
+if not anwenden:
+    print("Nichts kopiert. Mit --anwenden ausfuehren, wenn der Plan passt.")
+    sys.exit(0)
+
+fehler = 0
+by_id = {z["id"]: z for z in zeilen}
+for r in plan:
+    if r["aktion"] != "kopieren":
+        continue
+    q, zp = os.path.join(wurzel, r["quelle"]), os.path.join(wurzel, r["ziel"])
+    os.makedirs(os.path.dirname(zp), exist_ok=True)
+    shutil.copy2(q, zp)
+    if sha256(zp) != by_id[r["id"]]["sha256"]:
+        print("FEHLER Pruefsumme stimmt nicht:", r["ziel"])
+        fehler += 1
+        continue
+    by_id[r["id"]]["beschreibung"] = (by_id[r["id"]]["beschreibung"] + " | " if by_id[r["id"]]["beschreibung"] else "") + "kopiert nach: " + r["ziel"]
+schreibe_index(wurzel, zeilen)
+print(f"Fertig. {fehler} Fehler. Neue Dateien bitte mit inventar.py erfassen.")
+sys.exit(1 if fehler else 0)

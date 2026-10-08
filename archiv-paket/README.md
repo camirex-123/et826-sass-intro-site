@@ -29,6 +29,13 @@ wird dadurch Platz frei.
 Schlechte Scans, Handschrift und Fotos von Papier erkennt OCR nur teilweise. Solche Dokumente werden als
 `ocr-schwach` markiert und muessen von dir geprueft werden.
 
+## Sauberes Archiv durch Kopieren (empfohlen bei vorhandenem Template)
+1. `python tools\inventar.py ARCHIV`, dann `python tools\duplikate.py ARCHIV --bevorzugt "ORDNER1,ORDNER2"` (Rangfolge der Originale).
+2. Optional `python tools\ocr.py ARCHIV --typen pdf,docx` (Inhalt fuer die Zuordnung).
+3. `python tools\uebernehmen.py ARCHIV --ziel "KANZLEI_CODEX_CASE_TEMPLATE/01_ORIGINALE" --ausschliessen "KANZLEI_CODEX_CASE_TEMPLATE" --ohne-typen md,csv,ps1,py,svg`
+   zeigt nur den PLAN (`index\uebernahme_plan.csv`). Erst mit `--anwenden` wird KOPIERT. Quellen bleiben unveraendert.
+   Pro Dokument kommt nur ein Original an, Unklares nach `_ungeklaert`.
+
 ## Wichtig
 - Kein Git-Repo ohne Passwortschutz oder in einem oeffentlichen Repo. Die `.gitignore` schliesst die Akten aus.
 - Sichere das Archiv verschluesselt (z. B. BitLocker oder Veracrypt-Container) und gib es den Rechtsanwalt nur ueber einen

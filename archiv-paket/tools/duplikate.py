@@ -2,15 +2,16 @@
 Gleicher SHA-256 = gleicher Inhalt. Je Gruppe wird ein 'Original' gewaehlt:
   1. Pfad beginnt mit einem Eintrag aus --bevorzugt (in dieser Reihenfolge)
   2. bereits geprueftes Dokument (status geprueft/zugeordnet-auto)
-  3. aeltestes Aenderungsdatum
-  4. kuerzester Pfad
+  3. Name ohne 'Kopie', 'copy', '(1)' usw. (Kopien-Namen verlieren)
+  4. aeltestes Aenderungsdatum
+  5. kuerzester Pfad
 Alle anderen Dateien der Gruppe werden 'duplikat' mit Verweis auf das Original.
 Ergebnis: index/dokumente.csv (status, duplikat_von) und index/duplikat_gruppen.csv zur Pruefung.
 Leere Dateien (0 Byte) werden nie als Duplikat gewertet.
 Aufruf:
   python tools/duplikate.py ARCHIV_WURZEL --bevorzugt "KANZLEI_CODEX_CASE_TEMPLATE/01_ORIGINALE,KANZLEI_CODEX_CASE_TEMPLATE"
-Ohne --bevorzugt entscheiden nur Punkt 2 bis 4. Nur Zahlen werden auf dem Bildschirm gezeigt, keine Dateinamen."""
-import csv, os, sys
+Ohne --bevorzugt entscheiden nur Punkt 2 bis 5. Nur Zahlen werden auf dem Bildschirm gezeigt, keine Dateinamen."""
+import csv, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from archiv_lib import *
 
@@ -31,7 +32,8 @@ def rang(z):
         if z["pfad"] == b or z["pfad"].startswith(b + "/"):
             r = k
             break
-    return (r, 0 if z["status"] in FEST else 1, z["geaendert"] or "9999", len(z["pfad"]), z["pfad"])
+    kopie = 1 if re.search(r"kopie|copy|\(\d+\)|[ _-]\d{1,2}$", os.path.splitext(z["name"])[0].lower()) else 0
+    return (r, 0 if z["status"] in FEST else 1, kopie, z["geaendert"] or "9999", len(z["pfad"]), z["pfad"])
 
 
 gruppen = {}

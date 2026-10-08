@@ -22,6 +22,10 @@ KAT = {
         "kinderpraxis", "klinik", "krankenhaus", "therapie", "befund", "u-heft", "impf", "sachverstaendig", "sachverständig"],
     "04_Korrespondenz": ["gmail", "outlook", "e-mail", "email", "mail", "anwalt", "rechtsanwalt", "ra ", "kanzlei",
         "schreiben an", "antwort", "fw ", "fwd", "aw ", "wg "],
+    "07_Schule_Kita": ["schule", "grundschule", "kita", "kindergarten", "lehrer", "schulleitung", "klassenlehrer",
+        "dienstaufsicht", "schulamt", "hort", "elternabend", "zeugnis", "integrationsstatus", "dbbl"],
+    "08_Polizei": ["polizei", "anzeige", "strafanzeige", "ermittlung", "vernehmung", "aussage"],
+    "09_Vollmachten": ["vollmacht", "schweigepflichtentbindung", "einwilligung", "mandat"],
     "06_Eigene_Texte": ["statement", "entwurf", "chronologie", "notiz", "stellungnahme eigen", "eigene darstellung",
         "zusammenfassung", "lebenslauf", "erklaerung", "erklärung"],
 }
