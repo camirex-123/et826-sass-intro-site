@@ -29,11 +29,11 @@ for p in sorted(dateien(wurzel)):
          "erfasst_am": jetzt(), "typ": "", "datum": "", "aktenzeichen": "",
          "beschreibung": "", "status": "neu", "duplikat_von": ""}
     naechste += 1
-    if h in nach_hash:
+    if h in nach_hash and st.st_size > 0:
         z["status"] = "duplikat"
         z["duplikat_von"] = nach_hash[h]["id"]
         dup += 1
-    else:
+    elif st.st_size > 0:
         nach_hash[h] = z
     zeilen.append(z)
     bekannt[r] = z

@@ -9,7 +9,10 @@ Aufruf:
   python tools/ocr.py                 nur Dokumente ohne Text
   python tools/ocr.py --neu           alles neu einlesen
   python tools/ocr.py --id D-00012    ein Dokument
-Optional: --sprache deu+eng  --dpi 300"""
+Optional: --sprache deu+eng  --dpi 300
+  --typen pdf,docx        nur diese Dateitypen
+  --ordner EINGANG_KITA   nur Pfade, die so beginnen
+  --max 50                hoechstens 50 Dokumente pro Lauf (zum Testen)"""
 import os, re, shutil, subprocess, sys, tempfile, zipfile
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from archiv_lib import *
@@ -95,7 +98,10 @@ def main():
     sprache = args[args.index("--sprache") + 1] if "--sprache" in args else "deu+eng"
     dpi = int(args[args.index("--dpi") + 1]) if "--dpi" in args else 300
     nur = args[args.index("--id") + 1] if "--id" in args else None
-    rest = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] not in ("--sprache", "--dpi", "--id"))]
+    typen = {"." + t.strip().lower().lstrip(".") for t in args[args.index("--typen") + 1].split(",")} if "--typen" in args else None
+    ordner = args[args.index("--ordner") + 1].replace("\\", "/").strip("/") if "--ordner" in args else None
+    maxn = int(args[args.index("--max") + 1]) if "--max" in args else None
+    rest = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] not in ("--sprache", "--dpi", "--id", "--typen", "--ordner", "--max"))]
     wurzel = os.path.abspath(rest[0] if rest else os.getcwd())
     tess = finde_tesseract()
     if not tess:
@@ -108,6 +114,12 @@ def main():
             continue
         if not neu and not nur and z.get("text_status") in ("text", "ocr", "ocr-schwach", "leer", "nicht-unterstuetzt"):
             continue
+        if typen and os.path.splitext(z["pfad"])[1].lower() not in typen:
+            continue
+        if ordner and not z["pfad"].startswith(ordner):
+            continue
+        if maxn is not None and sum(stat.values()) >= maxn:
+            break
         p = os.path.join(wurzel, z["pfad"])
         if not os.path.exists(p):
             continue
