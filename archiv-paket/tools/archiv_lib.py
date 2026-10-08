@@ -14,7 +14,8 @@ ORDNER = [
     "index",
 ]
 SPALTEN = ["id", "pfad", "name", "sha256", "bytes", "geaendert", "erfasst_am",
-           "typ", "datum", "aktenzeichen", "beschreibung", "status", "duplikat_von", "text_status", "seiten", "komprimiert"]
+           "typ", "datum", "aktenzeichen", "beschreibung", "status", "duplikat_von", "text_status", "seiten", "komprimiert",
+           "dokdatum", "dokdatum_quelle", "dokdatum_konf", "dokdatum_alt"]
 IGNORIERT_ORDNER = {"index", "tools", ".git"}
 IGNORIERT_DATEIEN = {"AGENTS.md", "README.md", ".gitignore", "desktop.ini", "Thumbs.db"}
 

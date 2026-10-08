@@ -3,12 +3,13 @@
 - Ziel: <ZIEL>/<Kategorie>/..., Gericht nach Aktenzeichen. Unklare Dokumente kommen nach <ZIEL>/_ungeklaert
   (nichts geht verloren, aber sichtbar zur Pruefung). Quellen bleiben unveraendert.
 - Bereits im Ziel vorhandene Inhalte (gleicher Hash) werden uebersprungen.
+- Kopiernamen bekommen das Dokumentdatum als Praefix (JJJJ-MM-TT_), bei ungesichertem Datum 0000-00-00_. Das Original behaelt seinen Namen.
 - Standard = nur PLAN (index/uebernahme_plan.csv). Kopiert wird erst mit --anwenden.
 Aufruf:
   python tools/uebernehmen.py ARCHIV_WURZEL --ziel "KANZLEI_CODEX_CASE_TEMPLATE/01_ORIGINALE"
        [--ausschliessen "KANZLEI_CODEX_CASE_TEMPLATE,index"] [--ohne-typen md,csv,ps1,py,svg] [--anwenden]
 Vorher: inventar.py, duplikate.py, ocr.py (damit der Inhalt in die Zuordnung eingeht)."""
-import csv, os, shutil, sys
+import csv, os, re, shutil, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from archiv_lib import *
 from sortieren import bewerten, entscheide, sicher
@@ -57,10 +58,13 @@ for z in zeilen:
         unter = LABEL.get(kat, kat)
         if kat == "01_Verfahren" and az:
             unter += "/" + sicher(az)
-    zd = f"{ziel}/{unter}/{z['name']}"
+    dd = z.get("dokdatum", "")
+    pre = (dd if dd and z.get("dokdatum_konf") in ("hoch", "mittel") else "0000-00-00") + "_"
+    kname = z["name"] if re.match(r"^\d{4}-\d{2}-\d{2}_", z["name"]) else pre + z["name"]
+    zd = f"{ziel}/{unter}/{kname}"
     i = 1
     while zd in belegt or os.path.exists(os.path.join(wurzel, zd)):
-        b, e = os.path.splitext(z["name"])
+        b, e = os.path.splitext(kname)
         zd = f"{ziel}/{unter}/{b}__{i}{e}"
         i += 1
     belegt.add(zd)

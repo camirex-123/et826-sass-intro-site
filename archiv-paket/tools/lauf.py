@@ -1,5 +1,5 @@
 """Ein Befehl fuer 'Neues verarbeiten' - beliebig oft wiederholbar (es wird nur Neues angefasst).
-Reihenfolge: inventar -> duplikate -> ocr -> uebernehmen (PLAN). Kopiert wird nur mit --anwenden.
+Reihenfolge: inventar -> duplikate -> ocr -> datieren -> uebernehmen (PLAN); mit --chronik DIR zusaetzlich die Chronologie. Kopiert wird nur mit --anwenden.
 Videos (mp4, mov ...) werden erfasst und gehasht, aber nicht inhaltlich gelesen (text_status = nicht-unterstuetzt).
 Aufruf:
   python tools/lauf.py ARCHIV_WURZEL --ziel "KANZLEI_CODEX_CASE_TEMPLATE/01_ORIGINALE"
@@ -15,7 +15,7 @@ def opt(name):
 
 
 rest = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] not in
-        ("--ziel", "--bevorzugt", "--ausschliessen", "--ohne-typen", "--ocr-typen"))]
+        ("--ziel", "--bevorzugt", "--ausschliessen", "--ohne-typen", "--ocr-typen", "--chronik"))]
 wurzel = rest[0] if rest else os.getcwd()
 ziel = opt("--ziel")
 if not ziel:
@@ -30,15 +30,18 @@ def schritt(titel, skript, *extra):
     return r.returncode
 
 
-schritt("1/4 Neue Dateien erfassen", "inventar.py")
-schritt("2/4 Duplikate bewerten", "duplikate.py", *(["--bevorzugt", opt("--bevorzugt")] if opt("--bevorzugt") else []))
+schritt("1/5 Neue Dateien erfassen", "inventar.py")
+schritt("2/5 Duplikate bewerten", "duplikate.py", *(["--bevorzugt", opt("--bevorzugt")] if opt("--bevorzugt") else []))
 ocr = ["--typen", opt("--ocr-typen")] if opt("--ocr-typen") else []
-schritt("3/4 Text lesen / OCR (nur Neues)", "ocr.py", *ocr)
+schritt("3/5 Text lesen / OCR (nur Neues)", "ocr.py", *ocr)
+schritt("4/5 Dokumentdatum ermitteln", "datieren.py")
 u = ["--ziel", ziel]
 for flag in ("--ausschliessen", "--ohne-typen"):
     if opt(flag):
         u += [flag, opt(flag)]
 if "--anwenden" in args:
     u.append("--anwenden")
-schritt("4/4 Uebernahme " + ("KOPIEREN" if "--anwenden" in args else "PLAN"), "uebernehmen.py", *u)
+schritt("5/5 Uebernahme " + ("KOPIEREN" if "--anwenden" in args else "PLAN"), "uebernehmen.py", *u)
+if opt("--chronik"):
+    schritt("Chronologie schreiben", "chronologie.py", "--ziel", opt("--chronik"))
 print("\nFertig. Pruefen mit: python tools/pruefen.py", wurzel)
