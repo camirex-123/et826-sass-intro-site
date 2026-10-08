@@ -1,5 +1,5 @@
 """Gemeinsame Funktionen fuer das Aktenarchiv (nur Standardbibliothek)."""
-import csv, hashlib, os
+import csv, hashlib, os, sys
 from datetime import datetime
 
 ORDNER = [
@@ -44,6 +44,8 @@ def index_pfad(wurzel):
 
 
 def lese_index(wurzel):
+    if not os.path.isdir(wurzel):
+        sys.exit(f"FEHLER: Archivordner nicht gefunden: {wurzel}\nTippfehler im Pfad? Es wird nichts angelegt.")
     p = index_pfad(wurzel)
     if not os.path.exists(p):
         return []
