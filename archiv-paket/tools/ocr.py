@@ -112,7 +112,7 @@ def main():
     os.makedirs(os.path.join(wurzel, "index", "text"), exist_ok=True)
     stat = {}
     for z in zeilen:
-        if z["status"] == "duplikat" or (nur and z["id"] != nur):
+        if z["status"] in ("duplikat", "ausgelagert") or (nur and z["id"] != nur):
             continue
         if not neu and not nur and z.get("text_status") in ("text", "ocr", "ocr-schwach", "leer", "nicht-unterstuetzt"):
             continue

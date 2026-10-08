@@ -23,7 +23,7 @@ kopien = {}
 for z in zeilen:
     if z["status"] == "duplikat" and z["duplikat_von"]:
         kopien[z["duplikat_von"]] = kopien.get(z["duplikat_von"], 0) + 1
-dok = [z for z in zeilen if z["status"] != "duplikat" and z.get("dokdatum")
+dok = [z for z in zeilen if z["status"] not in ("duplikat", "ausgelagert") and z.get("dokdatum")
        and not z["pfad"].replace("\\", "/").startswith(ziel + "/")
        and os.path.splitext(z["name"])[1].lower() not in ohne
        and not any(z["pfad"].replace("\\", "/").startswith(a + "/") for a in aus)]

@@ -142,7 +142,7 @@ def main():
     zeilen = lese_index(wurzel)
     zaehl, n = {}, 0
     for z in zeilen:
-        if z["status"] == "duplikat":
+        if z["status"] in ("duplikat", "ausgelagert"):
             continue
         if z.get("datum"):
             z["dokdatum"], z["dokdatum_quelle"], z["dokdatum_konf"], z["dokdatum_alt"] = z["datum"], "manuell", "hoch", ""

@@ -38,7 +38,7 @@ im_ziel = {z["sha256"] for z in zeilen if z["pfad"].startswith(ziel + "/")}
 plan, belegt = [], set()
 for z in zeilen:
     p = z["pfad"]
-    if z["status"] == "duplikat" or p.startswith(ziel + "/"):
+    if z["status"] in ("duplikat", "ausgelagert") or p.startswith(ziel + "/"):
         continue
     if any(p == a or p.startswith(a + "/") for a in ausgeschlossen):
         continue

@@ -65,7 +65,7 @@ def main():
     stat = {}
     for z in zeilen:
         ext = os.path.splitext(z["pfad"])[1].lower()
-        if z["status"] == "duplikat" or z.get("komprimiert") or ext not in typen or ext not in (BILD | VIDEO):
+        if z["status"] in ("duplikat", "ausgelagert") or z.get("komprimiert") or ext not in typen or ext not in (BILD | VIDEO):
             continue
         if z["pfad"].startswith(ziel + "/") or (ordner and not z["pfad"].startswith(ordner)):
             continue

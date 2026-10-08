@@ -13,7 +13,7 @@ zeilen = lese_index(wurzel)
 bekannt = {z["pfad"]: z for z in zeilen}
 nach_hash = {}
 for z in zeilen:
-    if z["status"] != "duplikat":
+    if z["status"] not in ("duplikat", "ausgelagert"):
         nach_hash.setdefault(z["sha256"], z)
 naechste = max([int(z["id"][2:]) for z in zeilen if z["id"].startswith("D-")] + [0]) + 1
 neu = dup = 0

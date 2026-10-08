@@ -38,6 +38,8 @@ def rang(z):
 
 gruppen = {}
 for z in zeilen:
+    if z["status"] == "ausgelagert":
+        continue
     if str(z["bytes"]) == "0" and z["status"] == "duplikat":   # leere Dateien nie als Duplikat werten
         z["status"], z["duplikat_von"] = "neu", ""
     if z["sha256"] and str(z["bytes"]) != "0":

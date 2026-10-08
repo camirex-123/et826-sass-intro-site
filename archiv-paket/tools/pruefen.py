@@ -18,6 +18,8 @@ for r in sorted(auf_platte):
     if r not in im_index:
         fehler.append(f"nicht im Index: {r}")
 for r, z in im_index.items():
+    if r not in auf_platte and z["status"] == "ausgelagert":
+        continue
     if r not in auf_platte:
         fehler.append(f"Datei fehlt: {r} ({z['id']})")
         continue
