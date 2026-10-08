@@ -3,11 +3,12 @@ Fuer die Weitergabe (z. B. an den Rechtsanwalt) nimmst du die Kopien, die Origin
 - Bilder: laengste Kante max. 2000 px, JPEG-Qualitaet 80, Ausrichtung und EXIF (Datum, Ort) bleiben erhalten.
   PNG bleibt PNG (verlustfrei optimiert), damit Text in Screenshots lesbar bleibt.
 - Videos: H.264, max. 1280 px Breite, CRF 28, AAC 96 kbit/s, Metadaten uebernommen. Braucht ffmpeg.
+- Dateien unter --min-mb (Standard 1 MB) werden uebersprungen, da sich das nicht lohnt.
 - Nur die Originale (keine Duplikate) werden bearbeitet. Wird eine Kopie nicht kleiner, wird sie verworfen.
 - Schon erledigte Dokumente werden uebersprungen (Spalte 'komprimiert' im Index).
 Aufruf:
   python tools/komprimieren.py ARCHIV_WURZEL --ziel "KANZLEI_CODEX_CASE_TEMPLATE/99_CODEX_OUTPUT/komprimiert"
-      [--typen jpg,png,mp4] [--ordner PRAEFIX] [--max 20] [--kante 2000] [--qualitaet 80] [--crf 28]
+      [--typen jpg,png,mp4] [--ordner PRAEFIX] [--max 20] [--min-mb 1] [--kante 2000] [--qualitaet 80] [--crf 28]
 ffmpeg installieren (Windows): winget install Gyan.FFmpeg   (danach neues cmd-Fenster oeffnen)"""
 import os, shutil, subprocess, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -55,7 +56,8 @@ def main():
     ordner = (opt(args, "--ordner") or "").replace("\\", "/").strip("/")
     maxn = int(opt(args, "--max", 0)) or None
     kante, qual, crf = int(opt(args, "--kante", 2000)), int(opt(args, "--qualitaet", 80)), int(opt(args, "--crf", 28))
-    feste = ("--ziel", "--typen", "--ordner", "--max", "--kante", "--qualitaet", "--crf")
+    min_b = float(opt(args, "--min-mb", 1)) * 1e6
+    feste = ("--min-mb", "--ziel", "--typen", "--ordner", "--max", "--kante", "--qualitaet", "--crf")
     rest = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] not in feste)]
     wurzel = os.path.abspath(rest[0] if rest else os.getcwd())
     zeilen = lese_index(wurzel)
@@ -70,7 +72,7 @@ def main():
         if maxn and n >= maxn:
             break
         q = os.path.join(wurzel, z["pfad"])
-        if not os.path.exists(q):
+        if not os.path.exists(q) or os.path.getsize(q) < min_b:
             continue
         name = os.path.splitext(z["name"])[0]
         zext = ".mp4" if ext in VIDEO else ext
