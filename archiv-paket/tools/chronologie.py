@@ -1,5 +1,6 @@
 """Schreibt die Chronologie aller Dokumente nach Dokumentdatum (aufsteigend).
-Ergebnis in <ZIEL>: chronologie_auto.csv (fuer Tabellen/Codex) und chronologie_auto.md (zum Lesen, nach Jahr/Monat).
+Ergebnis in <ZIEL> (z. B. 99_CODEX_OUTPUT/03_CHRONOLOGIEN): JJJJ-MM-TT_CHR-AUTO_ARCHIVTOOLS_Dokumentchronologie.csv und .md
+(csv fuer Tabellen/Codex, md zum Lesen nach Jahr/Monat; Namensschema des Templates, eine Datei pro Tag).
 Bestehende Dateien mit anderen Namen im Zielordner werden nie angefasst.
 Gesicherte Daten (hoch/mittel) stehen in der Zeitleiste; ungesicherte (niedrig) getrennt am Ende zur Pruefung.
 Duplikate erscheinen nicht einzeln, sondern als Anzahl 'Kopien' beim Original.
@@ -7,6 +8,7 @@ Arbeitsdateien (Standard: md, csv, ps1, py, svg) und --ausschliessen-Ordner ersc
 Aufruf:  python tools/chronologie.py ARCHIV_WURZEL --ziel "KANZLEI_CODEX_CASE_TEMPLATE/02_CHRONOLOGIE"
          [--ohne-typen md,csv,ps1,py,svg] [--ausschliessen "KANZLEI_CODEX_CASE_TEMPLATE/00_MASTER"] """
 import csv, os, sys
+from datetime import date
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from archiv_lib import *
 
@@ -31,8 +33,9 @@ dok.sort(key=lambda z: (z["dokdatum"], z["name"].lower()))
 sicher = [z for z in dok if z["dokdatum_konf"] in ("hoch", "mittel")]
 unsicher = [z for z in dok if z["dokdatum_konf"] not in ("hoch", "mittel")]
 os.makedirs(os.path.join(wurzel, ziel), exist_ok=True)
+STEM = f"{date.today().isoformat()}_CHR-AUTO_ARCHIVTOOLS_Dokumentchronologie"   # Schema YYYY-MM-DD_ID_QUELLE_KURZTITEL
 
-with open(os.path.join(wurzel, ziel, "chronologie_auto.csv"), "w", newline="", encoding="utf-8-sig") as f:
+with open(os.path.join(wurzel, ziel, STEM + ".csv"), "w", newline="", encoding="utf-8-sig") as f:
     w = csv.writer(f, delimiter=";")
     w.writerow(["datum", "sicherheit", "quelle_des_datums", "doc_id", "id", "dateiname", "ordner", "weitere_daten", "kopien"])
     for z in sicher + unsicher:
@@ -67,6 +70,6 @@ for z in sicher:
 md += ["", "## Datum ungesichert (bitte pruefen)", "",
        "Bei diesen Dokumenten stammt das Datum nur vom Datei- oder Download-Zeitpunkt. Bitte Datum im Index (Spalte `datum`) eintragen.", ""]
 md += [zeile(z) for z in unsicher]
-with open(os.path.join(wurzel, ziel, "chronologie_auto.md"), "w", encoding="utf-8") as f:
+with open(os.path.join(wurzel, ziel, STEM + ".md"), "w", encoding="utf-8") as f:
     f.write("\n".join(md) + "\n")
 print(f"{len(sicher)} gesichert, {len(unsicher)} ungesichert -> {os.path.join(wurzel, ziel)}")
