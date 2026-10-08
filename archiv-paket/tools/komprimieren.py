@@ -97,6 +97,7 @@ def main():
             stat["fehler"] = stat.get("fehler", 0) + 1
             print("FEHLER", z["id"], type(e).__name__, str(e)[:200])
         n += 1
+        schreibe_index(wurzel, zeilen)   # Fortschritt sofort sichern, damit ein Abbruch nichts verliert
     schreibe_index(wurzel, zeilen)
     print("Zusammenfassung:", ", ".join(f"{k}={v}" for k, v in sorted(stat.items())) or "nichts zu tun")
     if vorher:
