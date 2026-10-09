@@ -127,13 +127,14 @@ def feld(name, z):
                      f"({z.get('dokdatum_quelle', '')}, {z.get('dokdatum_konf', '')}); nicht im Manifest, bitte pruefen"}.get(n, "")
 
 
+alle_vorschlaege = sorted((z for z in zeilen if kandidat(z) and z.get("doc_status") == "neu-vorschlag"), key=lambda z: z["doc_id"])
 with open(out, "w", newline="", encoding="utf-8-sig") as f:
     w = csv.writer(f, delimiter=delim)
     w.writerow(kopf)
-    for z in sorted(neu, key=lambda z: z["doc_id"]):
+    for z in alle_vorschlaege:
         w.writerow([feld(k, z) for k in kopf])
 im = sum(1 for z in zeilen if z.get("doc_status") == "manifest")
-print(f"{im} Index-Eintraege mit Datei_ID aus dem Manifest, {len(neu)} neue Vorschlaege"
+print(f"{im} Index-Eintraege mit Datei_ID aus dem Manifest, {len(alle_vorschlaege)} Vorschlaege in der Liste, davon {len(neu)} in diesem Lauf neu"
       + (f" (DOC-{naechste - len(neu):0{breite}d} bis DOC-{naechste - 1:0{breite}d})" if neu else ""))
 print(f"{len(set(sha2doc) - {z['sha256'].lower() for z in zeilen})} Manifest-Eintraege haben keine passende Datei im Archiv-Index.")
 print("Vorschlagsliste:", out)
