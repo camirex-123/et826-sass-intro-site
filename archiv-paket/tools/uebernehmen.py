@@ -10,6 +10,7 @@
 Aufruf:
   python tools/uebernehmen.py ARCHIV_WURZEL --ziel "KANZLEI_CODEX_CASE_TEMPLATE/01_ORIGINALE"
        [--ausschliessen "KANZLEI_CODEX_CASE_TEMPLATE,index"] [--ohne-typen md,csv,ps1,py,svg] [--anwenden] [--datumspraefix]
+       [--paket "EINGANGSORDNER=ZIELORDNER,..."]   ganzer Eingangsordner (z. B. entpacktes ZIP) kommt zusammen in einen Zielordner
 Handzuordnung: Beim Plan entsteht index/zuordnung_manuell_VORLAGE.csv mit allen unklaren Dateien (Spalte 'ordner' leer). In Excel
 ausfuellen (z. B. GERICHT/AG_Schoeneberg, MEDIZIN, SCHULE), als index/zuordnung_manuell.csv speichern (CSV, Trennzeichen Semikolon).
 Beim naechsten Lauf gilt dieser Ordner statt der automatischen Zuordnung. Eintrag '-' = nicht kopieren (eigene Entwuerfe, abgeleitete
@@ -58,7 +59,12 @@ if not ziel:
     sys.exit("FEHLER: --ziel fehlt, z. B. --ziel \"KANZLEI_CODEX_CASE_TEMPLATE/01_ORIGINALE\"")
 ausgeschlossen = [a.strip().replace("\\", "/").strip("/") for a in opt(args, "--ausschliessen").split(",") if a.strip()]
 ohne = {"." + t.strip().lower().lstrip(".") for t in opt(args, "--ohne-typen").split(",") if t.strip()}
-rest = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] not in ("--ziel", "--ausschliessen", "--ohne-typen"))]
+pakete = []
+for t in opt(args, "--paket").split(","):
+    if "=" in t:
+        a, b = t.split("=", 1)
+        pakete.append((a.strip().replace("\\", "/").strip("/"), b.strip().replace("\\", "/").strip("/")))
+rest = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] not in ("--ziel", "--ausschliessen", "--ohne-typen", "--paket"))]
 wurzel = os.path.abspath(rest[0] if rest else os.getcwd())
 zeilen = lese_index(wurzel)
 
@@ -94,8 +100,11 @@ for z in zeilen:
         continue
     punkte, gruende, az = bewerten(quelle, text_pfad(wurzel, z["id"]))
     kat, konf = entscheide(punkte)
+    paket = next((zo for pf, zo in pakete if p.startswith(pf + "/")), None)
     if z["id"] in manuell:
         unter = manuell[z["id"]]
+    elif paket:
+        unter = paket
     elif konf == "niedrig" or not kat:
         unter = "SONSTIGE/_UNGEKLAERT"
     else:

@@ -3,7 +3,7 @@ Reihenfolge: inventar -> duplikate -> ocr -> datieren -> uebernehmen (PLAN); mit
 Videos (mp4, mov ...) werden erfasst und gehasht, aber nicht inhaltlich gelesen (text_status = nicht-unterstuetzt).
 Aufruf:
   python tools/lauf.py ARCHIV_WURZEL --ziel "KANZLEI_CODEX_CASE_TEMPLATE/01_ORIGINALE"
-      [--bevorzugt "A,B"] [--ausschliessen "A,B"] [--ohne-typen md,csv,ps1,py,svg] [--ocr-typen pdf,docx,jpg,png] [--anwenden]"""
+      [--bevorzugt "A,B"] [--ausschliessen "A,B"] [--ohne-typen md,csv,ps1,py,svg] [--ocr-typen pdf,docx,jpg,png] [--paket "EINGANGSORDNER=ZIELORDNER"] [--anwenden]"""
 import os, subprocess, sys
 
 hier = os.path.dirname(os.path.abspath(__file__))
@@ -15,7 +15,7 @@ def opt(name):
 
 
 rest = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] not in
-        ("--ziel", "--bevorzugt", "--ausschliessen", "--ohne-typen", "--ocr-typen", "--chronik"))]
+        ("--ziel", "--bevorzugt", "--ausschliessen", "--ohne-typen", "--ocr-typen", "--chronik", "--paket"))]
 wurzel = rest[0] if rest else os.getcwd()
 ziel = opt("--ziel")
 if not ziel:
@@ -36,7 +36,7 @@ ocr = ["--typen", opt("--ocr-typen")] if opt("--ocr-typen") else []
 schritt("3/5 Text lesen / OCR (nur Neues)", "ocr.py", *ocr)
 schritt("4/5 Dokumentdatum ermitteln", "datieren.py")
 u = ["--ziel", ziel]
-for flag in ("--ausschliessen", "--ohne-typen"):
+for flag in ("--ausschliessen", "--ohne-typen", "--paket"):
     if opt(flag):
         u += [flag, opt(flag)]
 if "--anwenden" in args:
