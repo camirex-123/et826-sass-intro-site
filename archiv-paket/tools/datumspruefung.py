@@ -1,5 +1,6 @@
 """Prueflisten fuer unsicher datierte Dokumente (Konfidenz 'niedrig') und Einlesen der Handeintraege.
-1) Liste erzeugen:   python tools/datumspruefung.py ARCHIV_WURZEL
+1) Liste erzeugen:   python tools/datumspruefung.py ARCHIV_WURZEL [--ausschliessen "A,B"] [--ohne-typen md,csv,ps1,py,svg]
+                     (Standard fuer --ohne-typen wie bei chronologie.py; --ausschliessen blendet Ordner aus)
    -> index/datum_pruefliste.csv (nur aktive Dokumente, ohne Duplikate/Ausgelagerte; Spalte 'datum_manuell' leer)
 2) In Excel Spalte 'datum_manuell' ausfuellen (Format JJJJ-MM-TT oder TT.MM.JJJJ), als index/datum_manuell.csv speichern (CSV, Semikolon).
 3) Einlesen:         python tools/datumspruefung.py ARCHIV_WURZEL --einlesen
@@ -11,14 +12,22 @@ from archiv_lib import *
 from datetime import date as _date
 
 args = sys.argv[1:]
-rest = [a for a in args if not a.startswith("--")]
+def opt(name, default=""):
+    return args[args.index(name) + 1] if name in args else default
+
+
+aus = [a.strip().replace("\\", "/").strip("/") for a in opt("--ausschliessen").split(",") if a.strip()]
+ohne = {"." + t.strip().lower().lstrip(".") for t in opt("--ohne-typen", "md,csv,ps1,py,svg").split(",") if t.strip()}
+rest = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] not in ("--ausschliessen", "--ohne-typen"))]
 wurzel = os.path.abspath(rest[0] if rest else os.getcwd())
 zeilen = lese_index(wurzel)
 liste = os.path.join(wurzel, "index", "datum_pruefliste.csv")
 eingabe = os.path.join(wurzel, "index", "datum_manuell.csv")
 
 if "--einlesen" not in args:
-    sel = [z for z in zeilen if z.get("dokdatum_konf") == "niedrig" and z["status"] not in ("duplikat", "ausgelagert")]
+    sel = [z for z in zeilen if z.get("dokdatum_konf") == "niedrig" and z["status"] not in ("duplikat", "ausgelagert")
+           and os.path.splitext(z["name"])[1].lower() not in ohne
+           and not any(z["pfad"] == a or z["pfad"].startswith(a + "/") for a in aus)]
     sel.sort(key=lambda z: z["pfad"])
     with open(liste, "w", newline="", encoding="utf-8-sig") as f:
         w = csv.writer(f, delimiter=";")
