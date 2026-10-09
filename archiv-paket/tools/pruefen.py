@@ -33,7 +33,18 @@ for r, z in im_index.items():
         if not schema.match(z["name"]):
             hinweise.append(f"Name ohne Schema JJJJ-MM-TT_Typ_Aktenzeichen_Titel: {r}")
 
+bericht = os.path.join(wurzel, "index", "pruefbericht.txt")
+with open(bericht, "w", encoding="utf-8") as bf:
+    for f in fehler: bf.write("FEHLER  " + f + "\n")
+    for h in hinweise: bf.write("HINWEIS " + h + "\n")
 for f in fehler: print("FEHLER ", f)
-for h in hinweise: print("HINWEIS", h)
+arten = {}
+for h in hinweise:
+    k = h.split(":")[0]
+    k = "Duplikat ausserhalb Quarantaene" if k.startswith("Duplikat von") else k
+    arten[k] = arten.get(k, 0) + 1
+for k, n in sorted(arten.items(), key=lambda kv: -kv[1]):
+    print(f"  Hinweise {n:5}  {k}")
+print("Voller Bericht:", bericht)
 print(f"{len(fehler)} Fehler, {len(hinweise)} Hinweise, {len(im_index)} Dokumente im Index")
 sys.exit(1 if fehler else 0)
