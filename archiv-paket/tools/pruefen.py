@@ -14,9 +14,14 @@ fehler, hinweise = [], []
 schema = re.compile(r"^\d{4}-\d{2}-\d{2}_[^_]+_[^_]+_.+")
 
 auf_platte = {rel(wurzel, p): p for p in dateien(wurzel)}
+def abgeleitet(r):
+    """Von den Tools erzeugte Ergebnisse (99_CODEX_OUTPUT) sind keine Originale: Abweichungen nur als Hinweis."""
+    return "/99_CODEX_OUTPUT/" in "/" + r
+
+
 for r in sorted(auf_platte):
     if r not in im_index:
-        fehler.append(f"nicht im Index: {r}")
+        (hinweise if abgeleitet(r) else fehler).append(f"nicht im Index{' (abgeleitet)' if abgeleitet(r) else ''}: {r}")
 for r, z in im_index.items():
     if r not in auf_platte and z["status"] == "ausgelagert":
         continue
@@ -24,10 +29,11 @@ for r, z in im_index.items():
         fehler.append(f"Datei fehlt: {r} ({z['id']})")
         continue
     if sha256(auf_platte[r]) != z["sha256"]:
-        fehler.append(f"Inhalt veraendert (Hash stimmt nicht): {r} ({z['id']})")
+        (hinweise if abgeleitet(r) else fehler).append(f"Inhalt veraendert{' (abgeleitet, neu erzeugt?)' if abgeleitet(r) else ''} (Hash stimmt nicht): {r} ({z['id']})")
+        continue
     if z["status"] == "duplikat" and not r.startswith("99_Duplikate_Quarantaene/"):
         hinweise.append(f"Duplikat von {z['duplikat_von']} liegt noch in {r} - nach 99_Duplikate_Quarantaene verschieben (nicht loeschen)")
-    if z["status"] not in ("duplikat",) and not r.startswith("00_Eingang"):
+    if z["status"] not in ("duplikat",) and not r.startswith("00_Eingang") and not abgeleitet(r):
         if not (z["typ"] and z["datum"] and z["aktenzeichen"]):
             hinweise.append(f"Angaben unvollstaendig: {r}")
         if not schema.match(z["name"]):
