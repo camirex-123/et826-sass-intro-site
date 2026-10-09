@@ -10,6 +10,7 @@
 Aufruf:
   python tools/uebernehmen.py ARCHIV_WURZEL --ziel "KANZLEI_CODEX_CASE_TEMPLATE/01_ORIGINALE"
        [--ausschliessen "KANZLEI_CODEX_CASE_TEMPLATE,index"] [--ohne-typen md,csv,ps1,py,svg] [--anwenden] [--datumspraefix]
+       [--nur "DATEI_ODER_ORDNER,..."]   Plan nur fuer diese Pfade (relativ zur Archivwurzel), alles andere bleibt unberuehrt
        [--paket "EINGANGSORDNER=ZIELORDNER,..."]   ganzer Eingangsordner (z. B. entpacktes ZIP) kommt zusammen in einen Zielordner
 Handzuordnung: Beim Plan entsteht index/zuordnung_manuell_VORLAGE.csv mit allen unklaren Dateien (Spalte 'ordner' leer). In Excel
 ausfuellen (z. B. GERICHT/AG_Schoeneberg, MEDIZIN, SCHULE), als index/zuordnung_manuell.csv speichern (CSV, Trennzeichen Semikolon).
@@ -64,7 +65,8 @@ for t in opt(args, "--paket").split(","):
     if "=" in t:
         a, b = t.split("=", 1)
         pakete.append((a.strip().replace("\\", "/").strip("/"), b.strip().replace("\\", "/").strip("/")))
-rest = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] not in ("--ziel", "--ausschliessen", "--ohne-typen", "--paket"))]
+nur = [a.strip().replace("\\", "/").strip("/") for a in opt(args, "--nur").split(",") if a.strip()]
+rest = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] not in ("--ziel", "--ausschliessen", "--ohne-typen", "--paket", "--nur"))]
 wurzel = os.path.abspath(rest[0] if rest else os.getcwd())
 zeilen = lese_index(wurzel)
 
@@ -91,6 +93,8 @@ for z in zeilen:
     if any(p == a or p.startswith(a + "/") for a in ausgeschlossen):
         continue
     if os.path.splitext(p)[1].lower() in ohne:
+        continue
+    if nur and not any(p == n or p.startswith(n + "/") for n in nur):
         continue
     if z["sha256"] in im_ziel:
         plan.append({"id": z["id"], "quelle": p, "ziel": "", "kategorie": "", "konfidenz": "", "aktion": "schon im Ziel vorhanden"})
