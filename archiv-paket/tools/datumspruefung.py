@@ -1,11 +1,11 @@
 """Prueflisten fuer unsicher datierte Dokumente (Konfidenz 'niedrig') und Einlesen der Handeintraege.
 1) Liste erzeugen:   python tools/datumspruefung.py ARCHIV_WURZEL
    -> index/datum_pruefliste.csv (nur aktive Dokumente, ohne Duplikate/Ausgelagerte; Spalte 'datum_manuell' leer)
-2) In Excel Spalte 'datum_manuell' ausfuellen (Format JJJJ-MM-TT), als index/datum_manuell.csv speichern (CSV, Semikolon).
+2) In Excel Spalte 'datum_manuell' ausfuellen (Format JJJJ-MM-TT oder TT.MM.JJJJ), als index/datum_manuell.csv speichern (CSV, Semikolon).
 3) Einlesen:         python tools/datumspruefung.py ARCHIV_WURZEL --einlesen
    -> traegt gueltige Datumswerte in Spalte 'datum' des Index ein; danach datieren.py --neu laufen lassen.
 Es wird nichts an den Dokumenten geaendert. Ein Datum wird nur eingetragen, wenn du es selbst angibst."""
-import csv, os, sys
+import csv, os, re, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from archiv_lib import *
 from datetime import date as _date
@@ -47,6 +47,9 @@ for r in csv.DictReader(txt.splitlines(), delimiter=";"):
     i = (r.get("id") or "").strip()
     if not d:
         continue
+    m = re.match(r"^(\d{1,2})\.(\d{1,2})\.(\d{4})$", d)       # Excel speichert Daten oft als TT.MM.JJJJ
+    if m:
+        d = f"{m.group(3)}-{int(m.group(2)):02d}-{int(m.group(1)):02d}"
     try:
         _date.fromisoformat(d)
     except ValueError:
@@ -58,7 +61,7 @@ for r in csv.DictReader(txt.splitlines(), delimiter=";"):
     nach_id[i]["datum"] = d
     ok += 1
 schreibe_index(wurzel, zeilen)
-print(f"{ok} Datumswerte uebernommen, {len(schlecht)} abgelehnt (Format JJJJ-MM-TT oder unbekannte ID).")
+print(f"{ok} Datumswerte uebernommen, {len(schlecht)} abgelehnt (Format JJJJ-MM-TT oder TT.MM.JJJJ, oder unbekannte ID).")
 for i, d in schlecht:
     print("  abgelehnt:", i, repr(d))
 print("Jetzt datieren.py ... --neu ausfuehren.")
