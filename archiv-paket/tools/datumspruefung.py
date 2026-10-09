@@ -2,11 +2,14 @@
 1) Liste erzeugen:   python tools/datumspruefung.py ARCHIV_WURZEL [--ausschliessen "A,B"] [--ohne-typen md,csv,ps1,py,svg]
                      (Standard fuer --ohne-typen wie bei chronologie.py; --ausschliessen blendet Ordner aus)
    -> index/datum_pruefliste.csv (nur aktive Dokumente, ohne Duplikate/Ausgelagerte; Spalte 'datum_manuell' leer)
+   Kopien zum Sortieren: python tools/datumspruefung.py ARCHIV_WURZEL --kopieren ZIELORDNER [--ausschliessen ...]
+     -> KOPIERT (nichts wird verschoben) alle Dokumente der Liste, deren Datum nur aus Dateiaenderung oder Datei-Metadaten stammt,
+        nach ZIELORDNER (am besten ausserhalb des Archivs), als '<ID>_<Name>', mit Pruefsummenkontrolle und _LISTE.csv.
 2) In Excel Spalte 'datum_manuell' ausfuellen (Format JJJJ-MM-TT oder TT.MM.JJJJ), als index/datum_manuell.csv speichern (CSV, Semikolon).
 3) Einlesen:         python tools/datumspruefung.py ARCHIV_WURZEL --einlesen
    -> traegt gueltige Datumswerte in Spalte 'datum' des Index ein; danach datieren.py --neu laufen lassen.
 Es wird nichts an den Dokumenten geaendert. Ein Datum wird nur eingetragen, wenn du es selbst angibst."""
-import csv, os, re, sys
+import csv, os, re, shutil, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from archiv_lib import *
 from datetime import date as _date
@@ -18,11 +21,46 @@ def opt(name, default=""):
 
 aus = [a.strip().replace("\\", "/").strip("/") for a in opt("--ausschliessen").split(",") if a.strip()]
 ohne = {"." + t.strip().lower().lstrip(".") for t in opt("--ohne-typen", "md,csv,ps1,py,svg").split(",") if t.strip()}
-rest = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] not in ("--ausschliessen", "--ohne-typen"))]
+rest = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] not in ("--ausschliessen", "--ohne-typen", "--kopieren"))]
 wurzel = os.path.abspath(rest[0] if rest else os.getcwd())
 zeilen = lese_index(wurzel)
 liste = os.path.join(wurzel, "index", "datum_pruefliste.csv")
 eingabe = os.path.join(wurzel, "index", "datum_manuell.csv")
+
+if "--kopieren" in args:
+    zielordner = os.path.abspath(opt("--kopieren"))
+    if not zielordner or os.path.commonpath([zielordner, wurzel]) == wurzel:
+        sys.exit("FEHLER: --kopieren braucht einen Ordner AUSSERHALB des Archivs (sonst wuerden die Kopien im Index landen).")
+    sel = [z for z in zeilen if z.get("dokdatum_konf") == "niedrig" and z["status"] not in ("duplikat", "ausgelagert")
+           and z.get("dokdatum_quelle") in ("dateiaenderung", "datei-metadaten")
+           and os.path.splitext(z["name"])[1].lower() not in ohne
+           and not any(z["pfad"] == a or z["pfad"].startswith(a + "/") for a in aus)]
+    sel.sort(key=lambda z: z["pfad"])
+    os.makedirs(zielordner, exist_ok=True)
+    fehler = ok = 0
+    liste = []
+    for z in sel:
+        q = os.path.join(wurzel, z["pfad"])
+        ziel = os.path.join(zielordner, f"{z['id']}_{z['name']}")
+        if not os.path.exists(q):
+            print("FEHLT:", z["pfad"]); fehler += 1; continue
+        if os.path.exists(ziel):
+            print("uebersprungen (existiert schon):", os.path.basename(ziel)); continue
+        shutil.copy2(q, ziel)
+        if sha256(ziel) != z["sha256"]:
+            print("FEHLER Pruefsumme:", ziel); fehler += 1; continue
+        ok += 1
+        liste.append([z["id"], os.path.basename(ziel), z["pfad"], z.get("dokdatum", ""), z.get("dokdatum_quelle", "")])
+    lp = os.path.join(zielordner, "_LISTE.csv")
+    neu = not os.path.exists(lp)
+    with open(lp, "a", newline="", encoding="utf-8-sig") as f:
+        w = csv.writer(f, delimiter=";")
+        if neu:
+            w.writerow(["id", "datei_im_pruefordner", "original_im_archiv", "vorschlag_datum", "quelle_des_vorschlags"])
+        w.writerows(liste)
+    print(f"{ok} Dateien kopiert, {fehler} Fehler. Zielordner: {zielordner}")
+    print("Die Originale im Archiv sind unveraendert. Daten bitte in index/datum_pruefliste.csv eintragen, nicht in den Dateinamen.")
+    sys.exit(1 if fehler else 0)
 
 if "--einlesen" not in args:
     sel = [z for z in zeilen if z.get("dokdatum_konf") == "niedrig" and z["status"] not in ("duplikat", "ausgelagert")
