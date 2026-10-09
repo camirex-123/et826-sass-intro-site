@@ -12,3 +12,6 @@ index/dokumente.csv
 
 index/text/
 index/zuordnung_vorschlag.csv
+
+__pycache__/
+*.pyc
