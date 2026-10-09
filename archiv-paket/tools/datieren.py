@@ -156,6 +156,8 @@ def main():
             continue
         if z.get("datum"):
             z["dokdatum"], z["dokdatum_quelle"], z["dokdatum_konf"], z["dokdatum_alt"] = z["datum"], "manuell", "hoch", ""
+            zaehl[("manuell", "hoch")] = zaehl.get(("manuell", "hoch"), 0) + 1
+            n += 1
             continue
         if z.get("dokdatum") and not neu and z.get("dokdatum_quelle") != "manuell":
             continue
